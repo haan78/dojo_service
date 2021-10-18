@@ -1,0 +1,15 @@
+{
+    "description": "Apptemp Copmoser items",
+    "name":"baris/appmodel2",
+    "config": {
+        "vendor-dir": "/var/www/html/vendor"
+    },
+
+    "require": {
+        "phpmailer/phpmailer": "6.1",
+        "abeautifulsite/simple-php-captcha": "^1.0",
+        "firebase/php-jwt": "^5.2",
+        "mongodb/mongodb": "^1.8",
+        "vlucas/phpdotenv": "^5.3"
+    }
+}

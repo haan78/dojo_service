@@ -1,0 +1,29 @@
+version: "3.8"
+        
+services:
+    php:
+        build:
+            context: ./
+            dockerfile: dockerfile
+        volumes: 
+            - "./service:/var/www/html/"
+            - "./dojoservice.env:/etc/dojoservice.env"
+        environment:             
+            - "TZ=Turkey"
+        ports:
+            - "8002:80"
+    mongodb:
+        image: mongo:5.0.3
+        environment:
+            TZ: "Asia/Istanbul"
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: 12345 
+        ports:
+            - 27017:27017
+        expose: 
+            - "27017"
+        volumes:
+            - mongodbvol:/data/db
+
+volumes:
+    mongodbvol:
