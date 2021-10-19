@@ -142,10 +142,14 @@ class JsonClass {
         protected function doResponse($json) : void {
             $p = filter_input(INPUT_GET,  self::$JSONP, FILTER_SANITIZE_STRING);
             if (($p != null) && ($p != false)) {
-                header('Content-Type: application/javascript; charset=utf-8');
+                if ( !headers_sent() ) {
+                    header('Content-Type: application/javascript; charset=utf-8');
+                }                
                 echo "if (typeof $p === 'function' ) $p( " . json_encode($json, static::$JSON_FLAGS) . " ); else consloe.error('Function $p not found.'); ";
             } else {
-                header('Content-Type: application/json; charset=utf-8');
+                if ( !headers_sent() ) {
+                    header('Content-Type: application/json; charset=utf-8');
+                }                
                 echo json_encode($json, static::$JSON_FLAGS);
             }
         }

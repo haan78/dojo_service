@@ -4,23 +4,22 @@ use Firebase\JWT\JWT;
 
 class Validate {
     public static function user() : void {
-        $headers = getallheaders();
+        $headers = getallheaders();        
         if ( isset($headers["USER_DATA"]) ) {
             $obj = self::parseJwtDataString( $headers["USER_DATA"] );
             if ( property_exists($obj, 'user' ) && property_exists($obj, 'password' ) ) {
                 $user = trim($obj->user);
-                $pass = trim($obj->password);
-                $res = db::userFind($user,$pass);
-                if (!is_null($res)) {
+                $pass = trim($obj->password);                                
+                if ( db::userFind($user,$pass) ) {                    
                     return;
-                } else {
+                } else {                
                     throw new Exception("Authontication has faild");
                 }
             } else {
                 throw new Exception("User and Password must send");
             }            
         } else {            
-            throw new Exception("No user");
+            throw new Exception("No user data");
         }
     }
 

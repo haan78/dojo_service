@@ -1,13 +1,12 @@
 <?php
 
-use Web\PathInfo;
-
 error_reporting(E_ALL);
 ini_set('display_errors', TRUE);
 ini_set('display_startup_errors', TRUE);
 
 require "./vendor/autoload.php";
 require "./lib/Web/PathInfo.php";
+use Web\PathInfo;
 
 try {
     $dotenv = Dotenv\Dotenv::createImmutable("/etc","dojoservice.env");
