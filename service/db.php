@@ -19,7 +19,7 @@ class db {
         $d = ["name" => $user, "password" => md5($pass)];        
         $result = $mongo->selectCollection("user")->findOne($d);        
         if ( !is_null($result) ) {
-            self::$role = ( isset($res["role"]) ? $res["role"] : "USER" );
+            self::$role = ( isset($result["role"]) ? $result["role"] : "USER" );
             return true;
         } else {
             return false;

@@ -28,6 +28,7 @@ class JsonClass {
         public static int $JSON_FLAGS = 0;
         public static bool $SHOW_ERROR_DETAILS = false;
         public static bool $LOG_ONYL_SUCCESS_RESULTS = true;
+        protected ?string $role = null;
 
         public static function debugMode() {
             self::$SHOW_ERROR_DETAILS = true;
@@ -155,7 +156,7 @@ class JsonClass {
         }
 
         protected function doSuccess($data) {
-            return array("success" => true, "data" => $data);
+            return array("success" => true, "data" => $data, "role"=>$this->role );
         }
 
         protected function doError(Throwable $ex) {
@@ -175,7 +176,7 @@ class JsonClass {
             } else {
                 $data["code"] = $ex->getCode();
             }
-            return array("success" => false, "data" => $data);
+            return array("success" => false, "data" => $data, "role"=>$this->role);
         }
     }
 }
