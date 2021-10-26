@@ -16,6 +16,7 @@ class Validate {
                     throw new Exception("Authontication has faild");
                 }
             } else {
+                var_dump($obj);
                 throw new Exception("User and Password must send");
             }            
         } else {            
@@ -28,7 +29,7 @@ class Validate {
             $key = $_ENV["JWT_KEY"];
             return  JWT::decode($jwt, $key, array('HS256'));
         } catch( Exception $ex ) {
-            throw new Exception("Auth data can't parse");
+            throw new Exception("Auth data can't parse / ".$ex->getMessage());
         }
     }
 }

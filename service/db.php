@@ -1,4 +1,8 @@
 <?php
+
+use MongoTools\Cast;
+use MongoTools\Collection;
+
 require_once __DIR__ . "/lib/MongoTools/Tools.php";
 class db {
     public static $role = "";
@@ -17,12 +21,23 @@ class db {
     public static function userFind(string $user,string $pass) : bool {
         $mongo = self::mongo();
         $d = ["name" => $user, "password" => md5($pass)];        
-        $result = $mongo->selectCollection("user")->findOne($d);        
+        $result = $mongo->selectCollection("user")->findOne($d);
         if ( !is_null($result) ) {
             self::$role = ( isset($result["role"]) ? $result["role"] : "USER" );
             return true;
         } else {
             return false;
         }        
+    }
+
+    public static function add(string $collName,$data) : string {
+        $mongo = self::mongo();
+        return Collection::add($mongo,$collName,$data);
+    }
+
+    public static function uyeler($post) {
+        $mongo = self::mongo();
+        $query = [];
+        return Cast::toList( $mongo->selectCollection("uye")->find($query) );
     }
 }

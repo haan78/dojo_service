@@ -1,7 +1,10 @@
 <?php 
 
 namespace MongoTools {
-    class Cast {
+
+use stdClass;
+
+class Cast {
         public static string $DATE_TIME_FORMAT = 'Y-m-d H:i:s';
         public static function toUTCDateTime(\DateTime $dt)  : \MongoDB\BSON\UTCDateTime {
             return new  \MongoDB\BSON\UTCDateTime($dt);
@@ -94,6 +97,29 @@ namespace MongoTools {
     class Get {
         public static function matchedCount(\MongoDB\UpdateResult $result) : int {
             return $result->getMatchedCount();
+        }
+    }
+
+    class Collection {
+        public static function add(\MongoDB\Database $db ,string $name, $data) : string {
+            $d = null;
+            if ( $data instanceof stdClass ) {
+                $d = (array)$data;
+            } else {
+                $d = $data;
+            }
+
+            if (is_array($d)) {
+                foreach($d as $k => $v) {
+                    if ( is_string($v) && preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/',$v) ) {
+                        $d[$k] = new  \MongoDB\BSON\UTCDateTime(strtotime($v)*1000);
+                    }                    
+                }
+            }
+
+
+            $res = $db->selectCollection($name)->insertOne($d);
+            return (string)$res->getInsertedId();
         }
     }
 }
