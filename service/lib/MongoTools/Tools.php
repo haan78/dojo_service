@@ -5,15 +5,22 @@ namespace MongoTools {
 use stdClass;
 
 class Cast {
-        public static string $DATE_TIME_FORMAT = 'Y-m-d H:i:s';
+        public static bool $LOCAL_TIME_ZONE = false;
+        public static string $DATE_TIME_FORMAT = "Y-m-d\TH:i:s.000\Z"; //c
         public static function toUTCDateTime(\DateTime $dt)  : \MongoDB\BSON\UTCDateTime {
             return new  \MongoDB\BSON\UTCDateTime($dt);
         }
 
         public static function toDateTime(\MongoDB\BSON\UTCDateTime $mdt) : \DateTime {
-            $dt = $mdt->toDateTime();
-            $tz = date_default_timezone_get();
-            $dt->setTimeZone(new \DateTimeZone($tz));
+            //echo "[".(string)$mdt."] ";
+            $dt = $mdt->toDateTime();            
+            if ( self::$LOCAL_TIME_ZONE) {
+                //echo date_default_timezone_get();
+                $dt->setTimeZone(new \DateTimeZone( date_default_timezone_get() ));                
+            } else {
+                $dt->setTimeZone(new \DateTimeZone( "UTC" ));
+            }            
+            
             return $dt;
         }
 
@@ -109,6 +116,9 @@ class Cast {
                 $d = $data;
             }
 
+            if ( isset($d["_id"]) && is_null($d["_id"])  ) {
+                unset($d["_id"]);
+            }
             if (is_array($d)) {
                 foreach($d as $k => $v) {
                     if ( is_string($v) && preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/',$v) ) {

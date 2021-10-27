@@ -38,6 +38,6 @@ class db {
     public static function uyeler($post) {
         $mongo = self::mongo();
         $query = [];
-        return Cast::toList( $mongo->selectCollection("uye")->find($query) );
+        return Cast::toTable( $mongo->selectCollection("uye")->find($query) );
     }
 }

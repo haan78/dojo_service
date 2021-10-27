@@ -6,7 +6,7 @@ require_once "./db.php";
 use Web\JsonClass;
 class service extends JsonClass {
     protected function auth(string $method, callable $abort): void {
-        Validate::user();
+        //Validate::user();
         $this->role = db::$role;
     }
 
@@ -28,6 +28,10 @@ class service extends JsonClass {
 
     public function uyeekle($post) {
         return db::add("uye",$post);
+    }
+
+    public function test3() {
+        return "Ali Barış Öztürk";
     }
 
     public function test2() {
