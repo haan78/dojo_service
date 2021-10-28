@@ -38,13 +38,7 @@ class Cast {
             }
         }
 
-        public static function toArray(\MongoDB\Model\BSONArray $arr) : array {
-            $result = [];
-            for ( $i=0; $i < count($arr); $i++ ) {
-                array_push($result,self::convert($arr[$i]));
-            }
-            return $result;
-        }
+
 
         public static function toObject(\MongoDB\Model\BSONDocument $doc) : object {
             $row = (array)$doc;
@@ -108,17 +102,14 @@ class Cast {
     }
 
     class Collection {
-        public static function add(\MongoDB\Database $db ,string $name, $data) : string {
+        public static function add(\MongoDB\Database $db ,string $name, $data,bool $upsert = true) : string {
             $d = null;
+            $_id = null;
             if ( $data instanceof stdClass ) {
                 $d = (array)$data;
             } else {
                 $d = $data;
-            }
-
-            if ( isset($d["_id"]) && is_null($d["_id"])  ) {
-                unset($d["_id"]);
-            }
+            }            
             if (is_array($d)) {
                 foreach($d as $k => $v) {
                     if ( is_string($v) && preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/',$v) ) {
@@ -127,9 +118,22 @@ class Cast {
                 }
             }
 
+            if ( isset($d["_id"])  ) {
+                if ( is_string( $d["_id"] ) ) {
+                    $_id = Cast::toObjectId($d["_id"]);
+                }
+                
+                unset($d["_id"]);
+            }
 
-            $res = $db->selectCollection($name)->insertOne($d);
-            return (string)$res->getInsertedId();
+            if (is_null($_id)) {
+
+                $res = $db->selectCollection($name)->insertOne($d);
+                return (string)$res->getInsertedId();
+            } else {
+                $res = $db->selectCollection($name)->updateOne([ '_id'=>$_id ],[ '$set'=> $d],[ "upsert" => $upsert ]);
+                return (string)$_id;
+            }            
         }
     }
 }

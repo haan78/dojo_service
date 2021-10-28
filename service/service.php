@@ -6,7 +6,7 @@ require_once "./db.php";
 use Web\JsonClass;
 class service extends JsonClass {
     protected function auth(string $method, callable $abort): void {
-        //Validate::user();
+        Validate::user();
         $this->role = db::$role;
     }
 
@@ -26,10 +26,6 @@ class service extends JsonClass {
         //return 23/7;
     }
 
-    public function uyeekle($post) {
-        return db::add("uye",$post);
-    }
-
     public function test3() {
         return "Ali Barış Öztürk";
     }
@@ -38,8 +34,16 @@ class service extends JsonClass {
         throw new Exception("Test Error");
     }
 
+    public function uyeekle($post) {
+        return db::add("uye",$post);
+    }
+
     public function uyeler($post) {
         return db::uyeler($post);
+    }
+
+    public function parola($post) {
+        return db::parola($post);
     }
 
 }

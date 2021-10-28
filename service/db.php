@@ -37,7 +37,74 @@ class db {
 
     public static function uyeler($post) {
         $mongo = self::mongo();
+        $limit = 1000;
+        if ( property_exists($post,"limit") ) {
+            $limit = $post->limit;
+        }
+
         $query = [];
-        return Cast::toTable( $mongo->selectCollection("uye")->find($query) );
+        if ( property_exists($post,"active") ) {
+            $query["active"] = $post->active;
+        }
+
+        $projection = [
+            'ad'=>1,
+            'email'=>1,
+            'ekfno'=>1,
+            'ogrenci'=>1,
+            'active'=>1,
+            'dogum'=>1
+        ];
+        
+        return Cast::toTable( $mongo->selectCollection("uye")->find($query,[ 'limit'=>$limit,'projection'=>$projection ]) );
+    }
+
+    public static function parola($post) {
+        $mongo = self::mongo();
+        $f = [
+            "name" => $post->name,
+            "password" => md5($post->password_old)
+        ];
+        $set = [
+            '$set' => [
+                'password' => md5($post->password_new)
+            ]
+        ];
+        $num = $mongo->selectCollection("user")->updateOne($f,$set,[ "upsert"=>false ])->getMatchedCount();
+        if ($num > 0) {            
+            return true;
+        } else {
+            throw new Exception("Username or password is wrong");
+        }
+    }
+
+    public static function yoklama($post) {
+        $mongo = self::mongo();
+
+        $mongo->selectCollection("uye")->find([""]);
+    }
+
+    public static function yoklama_ekle($post) {
+
+    }
+
+    public static function yoklama_sil($post) {
+
+    }
+
+    public static function img64($id) {
+        $mongo = self::mongo();
+        $data = $mongo->selectCollection("uye")->findOne([ "_id" => Cast::toObjectId($id) ]);
+        if ( is_null($data)) {
+            throw new Exception("Imge not found");
+        }
+        $b64 = $data["img"];
+        
+        if ( is_string($b64) ) {
+            return $b64;
+        } else {
+            throw new Exception("Imge not found");
+        }
+
     }
 }
