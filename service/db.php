@@ -78,18 +78,64 @@ class db {
         }
     }
 
-    public static function yoklama($post) {
+    public static function yoklamalar($post) {
+        $mongo = self::mongo();        
+        
+        $res = $mongo->selectCollection("uye")->aggregate([
+            [ '$unwind' => '$keikolar' ],
+            [ '$group' => [
+                    '_id' => [ 'keikolar' => '$keikolar' ],
+                    'sayi' => [ '$sum' => 1 ]
+                ]
+            ],
+            [ '$sort' => [ '_id' => -1 ] ],
+            [ '$limit' => 1000 ],
+            [ '$project' => [
+                    '_id' => 0,
+                    'tarih' => '$_id.keikolar',
+                    'sayi' => 1
+                ] 
+            ]
+        ]);
+
+        return Cast::toTable($res);
+
+    }
+
+    public static function yoklama_icindekiler($post) {
         $mongo = self::mongo();
-
-        $mongo->selectCollection("uye")->find([""]);
+        $projection = [
+            '_id'=>1,
+            'ad'=>1            
+        ];
+        $res = $mongo->selectCollection("uye")->find([ 'keikolar'=>  Cast::toISODate($post->tarih)  ],['projection'=>$projection]);
+        return Cast::toTable($res);
     }
 
-    public static function yoklama_ekle($post) {
-
+    public static function yoklama_disindakiler($post) {
+        $mongo = self::mongo();
+        $res = $mongo->selectCollection("uye")->find([
+            'active'=>true,
+            'keikolar' => [ '$nin' =>[ Cast::toISODate($post->tarih) ]  ]
+        ],[
+            'projection'=> [
+                '_id'=>1,
+                'ad'=>1
+            ]
+        ]);
+        return Cast::toTable($res);
     }
 
-    public static function yoklama_sil($post) {
+    public static function yoklamaya_ekle($post) {
+        $mongo = self::mongo();
+        $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$addToSet'=> [ 'keikolar' =>  Cast::toISODate($post->tarih) ]  ]);
+        return true;
+    }
 
+    public static function yoklamadan_sil($post) {
+        $mongo = self::mongo();
+        $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'keikolar' =>  Cast::toISODate($post->tarih) ] ]);
+        return true;
     }
 
     public static function img64($id) {

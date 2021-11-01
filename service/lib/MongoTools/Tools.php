@@ -7,6 +7,9 @@ use stdClass;
 class Cast {
         public static bool $LOCAL_TIME_ZONE = false;
         public static string $DATE_TIME_FORMAT = "Y-m-d\TH:i:s.000\Z"; //c
+        public static function toISODate(string $iso) {
+            return new  \MongoDB\BSON\UTCDateTime(strtotime($iso)*1000);
+        }
         public static function toUTCDateTime(\DateTime $dt)  : \MongoDB\BSON\UTCDateTime {
             return new  \MongoDB\BSON\UTCDateTime($dt);
         }
@@ -59,6 +62,19 @@ class Cast {
                     array_push($list, self::convert($doc));
                 }                
                 $it->next();
+            }
+            return $list;
+        }
+
+        public static function transerArray(array $arr,?callable $fnc = null) {
+            $list = [];
+            for($i=0; $i<count($arr); $i++ ) {
+                $doc = $arr[$i];
+                if ( !is_null($fnc) ) {
+                    array_push($list, $fnc($doc));
+                } else {
+                    array_push($list, self::convert($doc));
+                }
             }
             return $list;
         }

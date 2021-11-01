@@ -34,6 +34,7 @@ class service extends JsonClass {
         throw new Exception("Test Error");
     }
 
+
     public function uyeekle($post) {
         return db::add("uye",$post);
     }
@@ -44,6 +45,26 @@ class service extends JsonClass {
 
     public function parola($post) {
         return db::parola($post);
+    }
+
+    public function yoklamalar($post) {
+        return db::yoklamalar($post);
+    }
+
+    public function yoklama_icindekiler($post) {
+        return db::yoklama_icindekiler($post);
+    }
+
+    public function yoklama_disindakiler($post) {
+        return db::yoklama_disindakiler($post);
+    }
+
+    public function yoklamaya_ekle($post) {
+        return db::yoklamaya_ekle($post);
+    }
+
+    public function yoklamadan_sil($post) {
+        return db::yoklamadan_sil($post);
     }
 
 }
