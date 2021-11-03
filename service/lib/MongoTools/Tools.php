@@ -66,7 +66,7 @@ class Cast {
             return $list;
         }
 
-        public static function transerArray(array $arr,?callable $fnc = null) {
+        public static function transerArray(\MongoDB\Model\BSONArray $arr,?callable $fnc = null) {
             $list = [];
             for($i=0; $i<count($arr); $i++ ) {
                 $doc = $arr[$i];

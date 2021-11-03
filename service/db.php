@@ -53,12 +53,13 @@ class db {
             'ekfno'=>1,
             'ogrenci'=>1,
             'active'=>1,
-            'dogum'=>1
+            'dogum'=>1,
+            'sonkeiko'=>[ '$max' => '$keikolar' ]
         ];
         
         return Cast::toTable( $mongo->selectCollection("uye")->find($query,[ 'limit'=>$limit,'projection'=>$projection ]) );
     }
-
+    
     public static function parola($post) {
         $mongo = self::mongo();
         $f = [
@@ -136,6 +137,20 @@ class db {
         $mongo = self::mongo();
         $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'keikolar' =>  Cast::toISODate($post->tarih) ] ]);
         return true;
+    }
+
+    public static function yoklama_uyenin($post) {
+        $mongo = self::mongo();
+        $projection = [
+            '_id'=>0,
+            'keikolar'=>1            
+        ];
+        $result = $mongo->selectCollection("uye")->findOne([ "_id"=>Cast::toObjectId($post->_id) ],['projection'=>$projection]);
+        if ( isset($result["keikolar"]) ) {            
+            return Cast::transerArray($result["keikolar"]);
+        } else {
+            return [];
+        }
     }
 
     public static function img64($id) {

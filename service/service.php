@@ -10,31 +10,6 @@ class service extends JsonClass {
         $this->role = db::$role;
     }
 
-    public function test($post)  {
-        //return ["post"=>$post ];
-        //return ["A","B","C"];
-        //sleep(6);
-        return [
-            [ "A"=>1,"B"=>2 ],
-            [ "A"=>2,"B"=>1 ],
-            [ "A"=>2,"B"=>2 ],
-            [ "A"=>1,"B"=>1 ],
-        ];
-        //return 123;
-        //return null;
-        //return false;
-        //return 23/7;
-    }
-
-    public function test3() {
-        return "Ali Barış Öztürk";
-    }
-
-    public function test2() {
-        throw new Exception("Test Error");
-    }
-
-
     public function uyeekle($post) {
         return db::add("uye",$post);
     }
@@ -65,6 +40,10 @@ class service extends JsonClass {
 
     public function yoklamadan_sil($post) {
         return db::yoklamadan_sil($post);
+    }
+
+    public function yoklama_uyenin($post) {
+        return db::yoklama_uyenin($post);
     }
 
 }
