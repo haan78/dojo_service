@@ -35,7 +35,7 @@ class Cast {
             } elseif ( $v instanceof \MongoDB\BSON\UTCDateTime ) {
                 return self::toDateTime($v)->format(self::$DATE_TIME_FORMAT);
             } elseif ( $v instanceof \MongoDB\Model\BSONArray ) {
-                return self::toArray($v);
+                return self::transerArray($v);
             } else {
                 return $v;
             }
@@ -79,7 +79,7 @@ class Cast {
             return $list;
         }
 
-        public static function toList(\MongoDB\Driver\Cursor $cursor, ?callable $fnc = null) : array {
+        /*public static function toList(\MongoDB\Driver\Cursor $cursor, ?callable $fnc = null) : array {
             $list = [];
             $it = new \IteratorIterator($cursor);
             $it->rewind();
@@ -96,7 +96,7 @@ class Cast {
                 $it->next();
             }
             return $list;
-        }
+        }*/
 
 		public static function toRegex(string $regex,string $flags = "") : \MongoDB\BSON\Regex  {
             return new \MongoDB\BSON\Regex($regex,$flags);

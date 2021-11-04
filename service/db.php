@@ -54,6 +54,7 @@ class db {
             'ogrenci'=>1,
             'active'=>1,
             'dogum'=>1,
+            'sinavlar'=>1,
             'sonkeiko'=>[ '$max' => '$keikolar' ]
         ];
         
@@ -148,6 +149,39 @@ class db {
         $result = $mongo->selectCollection("uye")->findOne([ "_id"=>Cast::toObjectId($post->_id) ],['projection'=>$projection]);
         if ( isset($result["keikolar"]) ) {            
             return Cast::transerArray($result["keikolar"]);
+        } else {
+            return [];
+        }
+    }
+
+    public static function sinav_ekle($post) {
+        $mongo = self::mongo();
+        $d = [
+            "tarih" => Cast::toISODate($post->tarih),
+            "seviye" => $post->seviye,
+            "aciklama" => $post->aciklama,
+            "sira" => $post->sira
+        ];
+        $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'sinavlar' =>  ["seviye" => $d["seviye"]] ]  ]);
+        $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$push'=> [ 'sinavlar' =>  $d ]  ]);
+        return true;
+    }
+
+    public static function sinav_sil($post) {
+        $mongo = self::mongo();
+        $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'sinavlar' =>  ["seviye" => $post->seviye] ]  ]);
+        return true;
+    }
+
+    public static function sinavlar($post) {
+        $mongo = self::mongo();
+        $projection = [
+            '_id'=>0,
+            'keikolar'=>1            
+        ];
+        $result = $mongo->selectCollection("uye")->findOne(["_id"=>Cast::toObjectId($post->_id)],['projection'=>$projection]);
+        if ( isset($result["sinavlar"]) ) {
+            return Cast::transerArray($result["sinavlar"]);
         } else {
             return [];
         }

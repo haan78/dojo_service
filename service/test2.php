@@ -17,5 +17,5 @@ $post = new stdClass;
 //$post->_id = '6176ac84f465cf2b7a13e2c2';
 //echo "<pre>\n"; var_dump( db::yoklama_uyenin($post) ); echo "\n</pre>";
 
-$post->active = false;
+$post->active = true;
 echo "<pre>\n"; var_dump( db::uyeler($post) ); echo "\n</pre>";
