@@ -79,25 +79,6 @@ class Cast {
             return $list;
         }
 
-        /*public static function toList(\MongoDB\Driver\Cursor $cursor, ?callable $fnc = null) : array {
-            $list = [];
-            $it = new \IteratorIterator($cursor);
-            $it->rewind();
-            while ($doc = $it->current()) {
-                $row = (array)$doc;
-                if ( isset($row["_id"]) && $row["_id"] instanceof \MongoDB\BSON\ObjectId )  {                    
-                    $row["_id"] = $row["_id"]->__toString();
-                }
-                if ( !is_null($fnc) ) {
-                    array_push($list, $fnc($row));
-                } else {
-                    array_push($list, $row);
-                }                
-                $it->next();
-            }
-            return $list;
-        }*/
-
 		public static function toRegex(string $regex,string $flags = "") : \MongoDB\BSON\Regex  {
             return new \MongoDB\BSON\Regex($regex,$flags);
         }

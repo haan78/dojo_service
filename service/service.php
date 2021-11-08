@@ -5,9 +5,11 @@ require_once "./validate.php";
 require_once "./db.php";
 use Web\JsonClass;
 class service extends JsonClass {
+    protected string $text;
     protected function auth(string $method, callable $abort): void {
-        Validate::user();
-        $this->role = db::$role;
+        $res = Validate::user();
+        $this->role = $res->role;
+        $this->text = $res->text;
     }
 
     public function uyeekle($post) {
@@ -44,6 +46,29 @@ class service extends JsonClass {
 
     public function yoklama_uyenin($post) {
         return db::yoklama_uyenin($post);
+    }
+
+    public function sinav_ekle($post) {
+        return db::sinav_ekle($post);
+    }
+
+    public function sinav_sil($post) {
+        return db::sinav_sil($post);
+    }
+
+    public function sabitler($post) {
+        return db::sabitler();
+    }
+
+    public function sabit($post) {
+        return db::sabit($post);
+    }
+
+    public function kullanici() {
+        return [
+            "role" => $this->role,
+            "text" => $this->text
+        ];
     }
 
 }
