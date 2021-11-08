@@ -5,7 +5,6 @@ use MongoTools\Collection;
 
 require_once __DIR__ . "/lib/MongoTools/Tools.php";
 class db {
-    public static $role = "";
     private static $mongo = null;
     public static function mongo() {
         if (is_null(self::$mongo)) {
@@ -18,15 +17,25 @@ class db {
         return self::$mongo;
     }
 
-    public static function userFind(string $user,string $pass) : bool {
+    public static function userFind(string $user,string $pass) : stdClass {
         $mongo = self::mongo();
-        $d = ["name" => $user, "password" => md5($pass)];        
-        $result = $mongo->selectCollection("user")->findOne($d);
+        $d = [
+            "name" => $user,
+            "password" => ( empty($pass) ? null : md5($pass) )
+        ];
+        $projection = [ 
+            "_id"=>0, 
+            "role"=>1, 
+            "text"=>1 
+        ];
+        $result = $mongo->selectCollection("kullanici")->findOne($d,['projection'=>$projection]);
         if ( !is_null($result) ) {
-            self::$role = ( isset($result["role"]) ? $result["role"] : "USER" );
-            return true;
+            $res = new stdClass;
+            $res->role = ( isset($result["role"]) ? $result["role"] : "USER" );
+            $res->text = ( isset($result["text"]) ? $result["text"] : "" );
+            return $res;
         } else {
-            return false;
+            throw new Exception("Username or password is wrong");
         }        
     }
 
@@ -65,14 +74,17 @@ class db {
         $mongo = self::mongo();
         $f = [
             "name" => $post->name,
-            "password" => md5($post->password_old)
+            "password" => (empty($post->password_old) ? null :  md5($post->password_old) )
         ];
         $set = [
             '$set' => [
                 'password' => md5($post->password_new)
             ]
         ];
-        $num = $mongo->selectCollection("user")->updateOne($f,$set,[ "upsert"=>false ])->getMatchedCount();
+        if ( property_exists($post,"text") ) {
+            $set['$set']['text'] = $post->text;
+        }
+        $num = $mongo->selectCollection("kullanici")->updateOne($f,$set,[ "upsert"=>false ])->getMatchedCount();
         if ($num > 0) {            
             return true;
         } else {
@@ -160,7 +172,7 @@ class db {
             "tarih" => Cast::toISODate($post->tarih),
             "seviye" => $post->seviye,
             "aciklama" => $post->aciklama,
-            "sira" => $post->sira
+            "deger" => $post->deger
         ];
         $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'sinavlar' =>  ["seviye" => $d["seviye"]] ]  ]);
         $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$push'=> [ 'sinavlar' =>  $d ]  ]);
@@ -173,18 +185,32 @@ class db {
         return true;
     }
 
-    public static function sinavlar($post) {
+    public static function sabitler() {
         $mongo = self::mongo();
-        $projection = [
-            '_id'=>0,
-            'keikolar'=>1            
+        return Cast::toTable( $mongo->selectCollection("sabit")->find([]) );
+    }
+
+    public static function sabit($post) {
+        $mongo = self::mongo();
+        $d = [
+            "text" => $post->text,
+            "value" => $post->value
         ];
-        $result = $mongo->selectCollection("uye")->findOne(["_id"=>Cast::toObjectId($post->_id)],['projection'=>$projection]);
-        if ( isset($result["sinavlar"]) ) {
-            return Cast::transerArray($result["sinavlar"]);
-        } else {
-            return [];
-        }
+        $mongo->selectCollection("sabit")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'data' =>  ["seviye" => $d["text"]] ]  ]);
+        $mongo->selectCollection("sabit")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$push'=> [ 'data' =>  $d ]  ]);
+        return true;
+    }
+
+    public static function kullanicilar($post) {
+        
+    }
+
+    public static function kullanici_ekle($post) {
+
+    }
+
+    public static function kullanici_sil($post) {
+        
     }
 
     public static function img64($id) {
