@@ -202,15 +202,18 @@ class db {
     }
 
     public static function kullanicilar($post) {
-        
+        $mongo = self::mongo();
+        return Cast::toTable( $mongo->selectCollection("kullanici")->find([]) );
     }
 
     public static function kullanici_ekle($post) {
-
+        $mongo = self::mongo();
+        return Collection::add($mongo,'kullanici',$post);
     }
 
     public static function kullanici_sil($post) {
-        
+        $mongo = self::mongo();
+        return Collection::remove($mongo,'kullanici',$post->_id);
     }
 
     public static function img64($id) {

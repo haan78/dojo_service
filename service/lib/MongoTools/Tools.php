@@ -132,5 +132,9 @@ class Cast {
                 return (string)$_id;
             }            
         }
+
+        public static function remove(\MongoDB\Database $db ,string $name, string $_id) {
+            return $db->selectCollection($name)->deleteOne( Cast::toObjectId($_id) )->isAcknowledged();
+        }
     }
 }
