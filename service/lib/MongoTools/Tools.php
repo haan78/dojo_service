@@ -116,7 +116,7 @@ class Cast {
             }
 
             if ( isset($d["_id"])  ) {
-                if ( is_string( $d["_id"] ) ) {
+                if ( is_string( $d["_id"] ) && !empty($d["_id"]) ) {
                     $_id = Cast::toObjectId($d["_id"]);
                 }
                 
@@ -134,7 +134,7 @@ class Cast {
         }
 
         public static function remove(\MongoDB\Database $db ,string $name, string $_id) {
-            return $db->selectCollection($name)->deleteOne( Cast::toObjectId($_id) )->isAcknowledged();
+            return $db->selectCollection($name)->deleteOne( [ "_id" => Cast::toObjectId($_id) ] )->isAcknowledged();
         }
     }
 }

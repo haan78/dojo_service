@@ -201,13 +201,14 @@ class db {
         return true;
     }
 
-    public static function kullanicilar($post) {
+    public static function kullanicilar() {
         $mongo = self::mongo();
         return Cast::toTable( $mongo->selectCollection("kullanici")->find([]) );
     }
 
     public static function kullanici_ekle($post) {
         $mongo = self::mongo();
+        $post->password = md5($post->password);
         return Collection::add($mongo,'kullanici',$post);
     }
 

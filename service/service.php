@@ -71,6 +71,26 @@ class service extends JsonClass {
         ];
     }
 
+    public function kullanicilar() {
+        return db::kullanicilar();
+    }
+
+    public function kullanici_ekle($post) {
+        if ( $this->role == "ADMIN" ) {
+            return db::kullanici_ekle($post);
+        } else {
+            throw new \Exception("Sadece yönetici rolündeki kişiler bu işlemi yapabilir");
+        }        
+    }
+
+    public function kullanici_sil($post) {
+        if ( $this->role == "ADMIN" ) {
+            return db::kullanici_sil($post);
+        } else {
+            throw new \Exception("Sadece yönetici rolündeki kişiler bu işlemi yapabilir");
+        }        
+    }
+
 }
 service::$SHOW_ERROR_DETAILS = true;
 service::$JSON_FLAGS = JSON_PRETTY_PRINT;
