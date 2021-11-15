@@ -196,7 +196,7 @@ class db {
             "text" => $post->text,
             "value" => $post->value
         ];
-        $mongo->selectCollection("sabit")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'data' =>  ["seviye" => $d["text"]] ]  ]);
+        $mongo->selectCollection("sabit")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$pull'=> [ 'data' =>  ["text" => $d["text"]] ]  ]);
         $mongo->selectCollection("sabit")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$push'=> [ 'data' =>  $d ]  ]);
         return true;
     }
@@ -215,6 +215,70 @@ class db {
     public static function kullanici_sil($post) {
         $mongo = self::mongo();
         return Collection::remove($mongo,'kullanici',$post->_id);
+    }
+
+    public static function gelir($post) {
+        $mongo = self::mongo();
+        $_id = null;
+        $d = [
+            "tarih"=>Cast::toISODate($post->tarih),
+            "tur"=>"GELIR",
+            "tanim"=>$post->tanim,
+            "tutar"=>$post->tutar,
+            "kasa"=> $post->kasa,
+            "aciklama"=>$post->aciklama,
+            "yil"=>$post->yil,
+            "ay"=>$post->ay,
+            "uye_id"=>$post->uye_id
+        ];
+        
+        if ( is_null($post->_id) ) {
+            $r = $mongo->selectCollection("gelirgider")->insertOne($d);
+            $_id = (string)$r->getInsertedId();
+        } else {
+            $r = $mongo->selectCollection("gelirgider")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$set' => $d],["upsert"=>true]);
+            $_id = $post->_id;
+        }
+
+        if ( !is_null($post->uye_id) ) {
+            $d["_id"] = Cast::toObjectId($_id);
+            $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->uye_id) ],[ '$pull'=>[ 'odentiler'=> [ '_id' =>$d["_id"]  ] ] ]);
+            $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->uye_id) ],[ '$push'=>[ 'odentiler'=> $d ] ]);
+        }
+
+        return $_id;
+    }
+
+    public static function gider($post) {
+        $mongo = self::mongo();
+        $_id = null;
+        $d = [
+            "tarih"=>Cast::toISODate($post->tarih),
+            "tur"=>"GIDER",
+            "tanim"=>$post->tanim,
+            "tutar"=>($post->tutar * -1),
+            "kasa"=> $post->kasa,
+            "aciklama"=>$post->aciklama,
+            "yil"=>$post->yil,
+            "ay"=>$post->ay,
+            "user" =>$post->user,
+            "uye_id"=>null
+        ];
+        if ( is_null($post->_id) ) {
+            $r = $mongo->selectCollection("gelirgider")->insertOne($d);
+            $_id = (string)$r->getInsertedId();
+        } else {
+            $r = $mongo->selectCollection("gelirgider")->updateOne([ "_id"=>Cast::toObjectId($post->_id) ],[ '$set' => $d],["upsert"=>true]);
+            $_id = $post->_id;
+        }
+        
+        return $_id;
+    }
+
+    public static function giderler($post) {
+        $mongo = self::mongo();
+        $res = $mongo->selectCollection("gelirgider")->find([]);
+        return Cast::toTable($res);
     }
 
     public static function img64($id) {

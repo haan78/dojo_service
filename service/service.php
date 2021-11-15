@@ -6,7 +6,7 @@ require_once "./db.php";
 use Web\JsonClass;
 class service extends JsonClass {
     protected string $text;
-    protected function auth(string $method, callable $abort): void {
+    protected function auth(string $method, callable $abort): void {        
         $res = Validate::user();
         $this->role = $res->role;
         $this->text = $res->text;
@@ -89,6 +89,14 @@ class service extends JsonClass {
         } else {
             throw new \Exception("Sadece yönetici rolündeki kişiler bu işlemi yapabilir");
         }        
+    }
+
+    public function giderler($post) {
+        return db::giderler($post);
+    }
+
+    public function gider($post) {
+        return db::gider($post);
     }
 
 }

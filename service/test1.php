@@ -27,6 +27,6 @@ echo "\n</pre>";
 */
 
 echo "<pre>\n";
-var_dump( Cast::transerArray( db::yoklamalar($post) ) );
+var_dump(  db::giderler($post) );
 
 echo "\n</pre>";
