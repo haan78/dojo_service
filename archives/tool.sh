@@ -25,8 +25,11 @@ then
             exit 1
         fi
     else
+        echo "Action can be backup or restore only"
+        exit 1
+    fi
 else
-    echo "Database name and action(backup/restore) required"
+    echo "Database name and action(backup/restore) are required"
     exit 1
 fi
 
