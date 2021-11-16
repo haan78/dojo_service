@@ -255,7 +255,6 @@ class db {
         $d = [
             "tarih"=>Cast::toISODate($post->tarih),
             "tur"=>"GIDER",
-            "tanim"=>$post->tanim,
             "tutar"=>($post->tutar * -1),
             "kasa"=> $post->kasa,
             "aciklama"=>$post->aciklama,
