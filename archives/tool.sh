@@ -19,7 +19,7 @@ then
     then
         if [ -f $arcf ]
         then
-            mongorestore --db=$1 --archive=$arcf -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin
+            mongorestore --db=$1 --drop --archive=$arcf -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin
         else
             echo "Bacuk file not found ($arcf)"
             exit 1
