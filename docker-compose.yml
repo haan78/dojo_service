@@ -23,6 +23,7 @@ services:
         expose: 
             - "27017"
         volumes:
+            - ./archives:/archives
             - mongodbvol:/data/db
 
 volumes:
