@@ -24,6 +24,7 @@ services:
             - "27017"
         volumes:
             - ./archives:/archives
+            - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
             - mongodbvol:/data/db
 
 volumes:
