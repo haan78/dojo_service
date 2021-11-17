@@ -56,11 +56,12 @@ class Cast {
             $it = new \IteratorIterator($cursor);
             $it->rewind();
             while ($doc = $it->current()) {
-                if ( !is_null($fnc) ) {
-                    array_push($list, $fnc($doc));
+                $row = self::convert($doc);
+                if ( is_null($fnc) ) {
+                    array_push($list, $row);                    
                 } else {
-                    array_push($list, self::convert($doc));
-                }                
+                    array_push($list, $fnc($row));
+                }               
                 $it->next();
             }
             return $list;

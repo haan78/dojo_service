@@ -51,12 +51,29 @@ class db {
             $limit = $post->limit;
         }
 
-        $query = [];
+        $match = [
+        ];
         if ( property_exists($post,"active") ) {
-            $query["active"] = $post->active;
+            $match["active"] = $post->active;
         }
 
-        $projection = [
+        $lookup = [
+            'from'=>'gelirgider',
+            'localField'=>'_id',
+            'foreignField'=>'uye_id',
+            'pipeline'=>[
+                [ '$match'=>[
+                        '$and'=>[
+                            [ '$expr' => [ '$eq' => ['$tur','GELIR'] ] ],
+                            [ '$expr' => [ '$gt' => ['$ay',0] ] ]
+                        ]
+                    ]
+                ]
+            ],
+            'as'=>'aidatlar'
+        ];
+
+        $project = [
             'ad'=>1,
             'email'=>1,
             'ekfno'=>1,
@@ -64,10 +81,43 @@ class db {
             'active'=>1,
             'dogum'=>1,
             'sinavlar'=>1,
-            'sonkeiko'=>[ '$max' => '$keikolar' ]
+            'keikolar'=>1,
+            'aidatlar'=>1
         ];
+
+        $fnc = function($row) {
+            $r = $row;
+            $r->sonkeiko = ( count($r->keikolar) > 0 ? max($r->keikolar) : null );
         
-        return Cast::toTable( $mongo->selectCollection("uye")->find($query,[ 'limit'=>$limit,'projection'=>$projection ]) );
+            $arr = [];
+            $thismounth = date("Y-m");
+            for ($i=0; $i<count($r->keikolar); $i++) {
+                $mounth = substr($r->keikolar[$i],0,7);
+                if ( $mounth != $thismounth ) {
+                    array_push($arr,$mounth);
+                }
+            }
+            $keikolar = array_unique($arr,SORT_STRING);
+            
+            $aidatlar = [];
+            for ( $i=0; $i<count($r->aidatlar); $i++ ) {
+                $a = $r->aidatlar[$i];
+                $tar = $a->yil."-".str_pad($a->ay,2,"0",STR_PAD_LEFT);
+                array_push($aidatlar,$tar);
+            }
+        
+            $r->aidateksigi = array_diff( $keikolar,$aidatlar );
+            unset($r->keikolar);
+            unset($r->aidatlar);
+            return $r;            
+        };
+        
+        return Cast::toTable( $mongo->selectCollection("uye")->aggregate([
+            [ '$match' =>$match ],
+            [ '$lookup' =>$lookup ],
+            [ '$project' => $project ],
+            [ '$limit' => $limit ]
+        ]),$fnc );
     }
     
     public static function parola($post) {

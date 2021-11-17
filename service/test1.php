@@ -17,16 +17,17 @@ $post->password_new = "12345";
 
 var_dump( db::parola($post) );*/
 
-/*
+
 $post->active = true;
 
 echo "<pre>\n";
-var_dump( db::uyeler($post) );
+var_dump( db::uyeler($post));
 
 echo "\n</pre>";
-*/
 
+/*
 echo "<pre>\n";
 var_dump(  db::giderler($post) );
 
 echo "\n</pre>";
+*/
