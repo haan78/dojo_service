@@ -21,7 +21,7 @@ then
         then
             mongorestore --db=$1 --drop --archive=$arcf -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin
         else
-            echo "Bacuk file not found ($arcf)"
+            echo "Backup file not found ($arcf)"
             exit 1
         fi
     else
