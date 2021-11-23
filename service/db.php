@@ -62,7 +62,8 @@ class db {
             'localField'=>'_id',
             'foreignField'=>'uye_id',
             'pipeline'=>[
-                [ '$match'=>[
+                [ 
+                    '$match'=>[
                         '$and'=>[
                             [ '$expr' => [ '$eq' => ['$tur','GELIR'] ] ],
                             [ '$expr' => [ '$gt' => ['$ay',0] ] ]
@@ -75,6 +76,7 @@ class db {
 
         $project = [
             'ad'=>1,
+            'cinsiyet'=>1,
             'email'=>1,
             'ekfno'=>1,
             'ogrenci'=>1,
