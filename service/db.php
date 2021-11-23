@@ -292,13 +292,26 @@ class db {
             $_id = $post->_id;
         }
 
-        if ( !is_null($post->uye_id) ) {
-            $d["_id"] = Cast::toObjectId($_id);
-            $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->uye_id) ],[ '$pull'=>[ 'odentiler'=> [ '_id' =>$d["_id"]  ] ] ]);
-            $mongo->selectCollection("uye")->updateOne([ "_id"=>Cast::toObjectId($post->uye_id) ],[ '$push'=>[ 'odentiler'=> $d ] ]);
-        }
-
         return $_id;
+    }
+
+    public static function gelirgider_sil(stdClass $post) {
+        $mongo = self::mongo();
+        $mongo->selectCollection("gelirgider")->deteteOne([ "_id"=>Cast::toObjectId($post->_id) ]);
+        return true;
+    }
+
+    public static function gelirler_uye(stdClass $post) {
+        $mongo = self::mongo();
+        $sort = [
+            "tarih"=>-1
+        ];
+        $limit = 1000;
+        $result = $mongo->selectCollection("gelirgider")->find([ "uye_id"=>Cast::toObjectId($post->_id), "tur"=>"GELIR" ],[
+            'sort'=>$sort,
+            'limit'=>$limit
+        ]);
+        return Cast::toTable($result);
     }
 
     public static function gider($post) {

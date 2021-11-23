@@ -99,6 +99,14 @@ class service extends JsonClass {
         return db::gider($post);
     }
 
+    public function gerlir_uye($post) {
+        return db::gelirler_uye($post);
+    }
+
+    public function gelirgider_sil($post) {
+        return db::gelirgider_sil($post);
+    }
+
 }
 service::$SHOW_ERROR_DETAILS = true;
 service::$JSON_FLAGS = JSON_PRETTY_PRINT;
