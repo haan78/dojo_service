@@ -1,12 +1,16 @@
 <?php
 //require "./validate.php";
 //Validate::user();
+date_default_timezone_set('Europe/Istanbul');
+error_reporting(E_ALL);
+ini_set('display_errors', TRUE);
+ini_set('display_startup_errors', TRUE);
 
-use MongoTools\Cast;
 
 require "./vendor/autoload.php";
 require "./db.php";
 $_ENV["MONGO_CONNECTION_STRING"]="mongodb://root:12345@mongodb";
+//$_ENV["MONGO_CONNECTION_STRING"]="mongodb://root:dQu98KNmtF9@localhost";
 $_ENV["MONGO_DATABASE"]="dojo";
 
 

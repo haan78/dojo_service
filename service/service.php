@@ -107,6 +107,10 @@ class service extends JsonClass {
         return db::gelirgider_sil($post);
     }
 
+    public function gelir($post) {
+        return db::gelir($post);
+    }
+
 }
 service::$SHOW_ERROR_DETAILS = true;
 service::$JSON_FLAGS = JSON_PRETTY_PRINT;

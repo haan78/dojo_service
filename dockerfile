@@ -28,6 +28,7 @@ RUN docker-php-ext-install zip
 RUN pecl install mongodb
 RUN pecl config-set php_ini /etc/php.ini
 RUN echo "extension=mongodb.so" > $PHP_INI_DIR/conf.d/mongodb.ini
+RUN echo "upload_max_filesize = 100M" > $PHP_INI_DIR/conf.d/upload.ini
 
 RUN apt-get -y install git zip unzip
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
