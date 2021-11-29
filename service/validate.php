@@ -12,7 +12,7 @@ class Validate {
                 $pass = trim($obj->password);                             
                 return db::userFind($user,$pass);
             } else {
-                var_dump($obj);
+                //var_dump($obj);
                 throw new Exception("User and Password must send");
             }            
         } else {            

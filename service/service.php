@@ -96,7 +96,7 @@ class service extends JsonClass {
     }
 
     public function gider($post) {
-        return db::gider($post);
+        return db::gider($post,$this->text);
     }
 
     public function gerlir_uye($post) {
@@ -108,7 +108,7 @@ class service extends JsonClass {
     }
 
     public function gelir($post) {
-        return db::gelir($post);
+        return db::gelir($post,$this->text);
     }
 
 }

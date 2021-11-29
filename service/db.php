@@ -293,7 +293,7 @@ class db
         return Collection::remove($mongo, 'kullanici', $post->_id);
     }
 
-    public static function gelir($post)
+    public static function gelir($post,$user_text)
     {
         $mongo = self::mongo();
         $_id = null;
@@ -306,8 +306,10 @@ class db
             "aciklama" => $post->aciklama,
             "yil" => $post->yil,
             "ay" => $post->ay,
-            "uye_id" => $post->uye_id
+            "uye_id" => Cast::toObjectId($post->uye_id)
         ];
+
+        $d["user_text"] = $user_text;
 
         if (is_null($post->_id)) {
             $r = $mongo->selectCollection("gelirgider")->insertOne($d);
@@ -341,7 +343,7 @@ class db
         return Cast::toTable($result);
     }
 
-    public static function gider($post)
+    public static function gider($post,$user_text)
     {
         $mongo = self::mongo();
         $_id = null;
@@ -357,6 +359,7 @@ class db
             "user" => $post->user,
             "uye_id" => null
         ];
+        $d["user_text"] = $user_text;
         if (is_null($post->_id)) {
             $r = $mongo->selectCollection("gelirgider")->insertOne($d);
             $_id = (string)$r->getInsertedId();
