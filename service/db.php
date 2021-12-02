@@ -6,16 +6,24 @@ use MongoTools\Collection;
 require_once __DIR__ . "/lib/MongoTools/Tools.php";
 class db
 {
-    public static function mongo(bool $getLink = false)
-    {
-        $cs = $_ENV["MONGO_CONNECTION_STRING"];
-        $dn = $_ENV["MONGO_DATABASE"];
-        $link = (\MongoTools\Cast::toClient($cs));
-        if ($getLink) {
-            return $link;
+    public static function link() : \MongoDB\Client {
+        if ( isset($_ENV["MONGO_CONNECTION_STRING"]) ) {
+            return new \MongoDB\Client($_ENV["MONGO_CONNECTION_STRING"]);
         } else {
-            return $link->selectDatabase($dn);
-        }
+            throw new Exception("ENV MONGO_CONNECTION_STRING not found");
+        }    
+    }
+
+    public static function db(\MongoDB\Client $link) : \MongoDB\Database  {
+        if ( isset($_ENV["MONGO_CONNECTION_STRING"]) ) {
+            return $link->selectDatabase(trim($_ENV["MONGO_DATABASE"]));
+        } else {
+            throw new Exception("ENV MONGO_DATABASE not found");
+        } 
+    }
+
+    public static function mongo() {
+        return self::db( self::link() );
     }
 
     public static function userFind(string $user, string $pass): stdClass
