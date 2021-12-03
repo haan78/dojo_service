@@ -116,7 +116,7 @@ class Cast {
                 }
             }
 
-            if ( isset($d["_id"])  ) {
+            if ( array_key_exists("_id",$d)  ) {
                 if ( is_string( $d["_id"] ) && !empty($d["_id"]) ) {
                     $_id = Cast::toObjectId($d["_id"]);
                 }

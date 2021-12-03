@@ -14,7 +14,7 @@ class db
         }    
     }
 
-    public static function db(\MongoDB\Client $link) : \MongoDB\Database  {
+    public static function database(\MongoDB\Client $link) : \MongoDB\Database  {
         if ( isset($_ENV["MONGO_CONNECTION_STRING"]) ) {
             return $link->selectDatabase(trim($_ENV["MONGO_DATABASE"]));
         } else {
@@ -23,7 +23,7 @@ class db
     }
 
     public static function mongo() {
-        return self::db( self::link() );
+        return self::database( self::link() );
     }
 
     public static function userFind(string $user, string $pass): stdClass
@@ -95,7 +95,8 @@ class db
             'dogum' => 1,
             'sinavlar' => 1,
             'keikolar' => 1,
-            'aidatlar' => 1
+            'aidatlar' => 1,
+            'img' => 1
         ];
 
         $fnc = function ($row) {

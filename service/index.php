@@ -4,8 +4,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', TRUE);
 ini_set('display_startup_errors', TRUE);
 
-require "./vendor/autoload.php";
-require "./lib/Web/PathInfo.php";
+require_once "./vendor/autoload.php";
+require_once "./lib/Web/PathInfo.php";
 use Web\PathInfo;
 
 try {
