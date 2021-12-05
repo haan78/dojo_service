@@ -13,7 +13,7 @@ class service extends JsonClass {
     }
 
     public function uyeekle($post) {
-        return db::add("uye",$post);
+        return db::uyeekle($post);
     }
 
     public function uyeler($post) {

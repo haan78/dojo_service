@@ -7,9 +7,10 @@ require_once __DIR__ . "/lib/MongoTools/Tools.php";
 class db
 {
 
-    private function sendinblue($email,$id,$params) {
+    private static function sendinblue($email, $id, $params)
+    {
         $curl = curl_init();
-    
+
         curl_setopt_array($curl, array(
             CURLOPT_URL => "https://api.sendinblue.com/v3/smtp/email",
             CURLOPT_RETURNTRANSFER => true,
@@ -20,50 +21,53 @@ class db
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => "POST",
             //CURLOPT_POSTFIELDS =>"{ \"templateId\": $id, \"to\": [ { \"email\": \"$email\" } ], \"params\": { \"url\": \"$url\", \"isim\":\"$eczaci\" }}",
-            CURLOPT_POSTFIELDS =>"{ \"templateId\": $id, \"to\": [ { \"email\": \"$email\" } ], \"params\": ".json_encode($params)."}",
+            CURLOPT_POSTFIELDS => "{ \"templateId\": $id, \"to\": [ { \"email\": \"$email\" } ], \"params\": " . json_encode($params) . "}",
             CURLOPT_HTTPHEADER => array(
-                "api-key: ".$_ENV["SENDINBLUE_APIKEY"],
+                "api-key: " . $_ENV["SENDINBLUE_APIKEY"],
                 "Content-Type: application/json"
             )
         ));
-    
+
         $response = curl_exec($curl);
         $error = null;
-        if ( $response === FALSE ) {
+        if ($response === FALSE) {
             $error = curl_error($curl);
         } else {
-            $obj = json_decode($response,true);
-            if ( isset($obj["code"]) ) {
-                $error = $obj["code"]." / ".$obj["message"];
+            $obj = json_decode($response, true);
+            if (isset($obj["code"])) {
+                $error = $obj["code"] . " / " . $obj["message"];
             } elseif (is_null($obj)) {
                 $error = "E-Mail gonderimi basarisiz daha sonra tekrar deneyin($response)";
             }
         }
         curl_close($curl);
-    
+
         if (!is_null($error)) {
             throw new \Exception($error);
         }
     }
 
-    public static function link() : \MongoDB\Client {
-        if ( isset($_ENV["MONGO_CONNECTION_STRING"]) ) {
+    public static function link(): \MongoDB\Client
+    {
+        if (isset($_ENV["MONGO_CONNECTION_STRING"])) {
             return new \MongoDB\Client($_ENV["MONGO_CONNECTION_STRING"]);
         } else {
             throw new Exception("ENV MONGO_CONNECTION_STRING not found");
-        }    
+        }
     }
 
-    public static function database(\MongoDB\Client $link) : \MongoDB\Database  {
-        if ( isset($_ENV["MONGO_CONNECTION_STRING"]) ) {
+    public static function database(\MongoDB\Client $link): \MongoDB\Database
+    {
+        if (isset($_ENV["MONGO_CONNECTION_STRING"])) {
             return $link->selectDatabase(trim($_ENV["MONGO_DATABASE"]));
         } else {
             throw new Exception("ENV MONGO_DATABASE not found");
-        } 
+        }
     }
 
-    public static function mongo() {
-        return self::database( self::link() );
+    public static function mongo()
+    {
+        return self::database(self::link());
     }
 
     public static function userFind(string $user, string $pass): stdClass
@@ -89,10 +93,59 @@ class db
         }
     }
 
-    public static function add(string $collName, $data): string
+    public static function uyeekle($post)
     {
-        $mongo = self::mongo();
-        return Collection::add($mongo, $collName, $data);
+        $set = [
+            "ad" => $post->ad,
+            "cinsiyet" => $post->cinsiyet,
+            "email" => $post->email,
+            "ekfno" => $post->ekfno,
+            "dogum" => new  \MongoDB\BSON\UTCDateTime(strtotime($post->dogum) * 1000),
+            "ogrenci" => $post->ogrenci,
+            "active" => $post->active,
+            "img" => $post->img
+        ];
+        $link = self::link();
+        $session = $link->startSession();
+        $session->startTransaction();
+        $mongo = self::database($link);
+        
+        $_id = null;
+        $activationid = "";
+        try {
+            if (is_null($post->_id)) {
+                $set["email_activation"] = false;
+                $res = $mongo->selectCollection("uye")->insertOne($set);
+                $_id = (string)$res->getInsertedId();
+                if ( is_null($_id) || empty($_id) ) {
+                    throw new Exception("Nasıl olabilr böyle bişey");
+                }
+            } else {
+                $_id = $post->_id;
+                $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($_id) ], [ '$set' => $set]);
+            }
+
+            if ( $post->sendemail ) {
+                $ed = [
+                    "email" => $post->email,
+                    "uye_id" => Cast::toObjectId($_id),
+                    "create_at" => new \MongoDB\BSON\UTCDateTime(),
+                    "update_at" => null
+                ];
+                $result = $mongo->selectCollection("email_activation")->updateOne( [ "email"=>$post->email ],[ '$set' => $ed ],['upsert' => true] );
+                $activationid = (string)$result->getUpsertedId();
+                self::sendinblue($post->email, 1, [
+                    "AKTIVASYON_URL" => $_ENV["SERVICE_ROOT"]."/emailactivation/$activationid",
+                    "UYE_AD" => $post->ad
+                ]);
+            }
+
+            $session->commitTransaction();
+        } catch (Exception $ex) {
+            $session->abortTransaction();
+            throw $ex;
+        }
+        return $_id;
     }
 
     public static function uyeler($post)
@@ -141,7 +194,7 @@ class db
 
         $fnc = function ($row) {
             $r = $row;
-            if ( !property_exists($r,"keikolar") ) {
+            if (!property_exists($r, "keikolar")) {
                 $r->keikolar = [];
             }
             $r->sonkeiko = (count($r->keikolar) > 0 ? max($r->keikolar) : null);
@@ -342,7 +395,7 @@ class db
         return Collection::remove($mongo, 'kullanici', $post->_id);
     }
 
-    public static function gelir($post,$user_text)
+    public static function gelir($post, $user_text)
     {
         $mongo = self::mongo();
         $_id = null;
@@ -392,7 +445,7 @@ class db
         return Cast::toTable($result);
     }
 
-    public static function gider($post,$user_text)
+    public static function gider($post, $user_text)
     {
         $mongo = self::mongo();
         $_id = null;
