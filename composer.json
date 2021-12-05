@@ -6,10 +6,9 @@
     },
 
     "require": {
-        "phpmailer/phpmailer": "6.1",
-        "abeautifulsite/simple-php-captcha": "^1.0",
         "firebase/php-jwt": "^5.2",
         "mongodb/mongodb": "^1.8",
-        "vlucas/phpdotenv": "^5.3"
+        "vlucas/phpdotenv": "^5.3",
+        "sendinblue/api-v3-sdk": "7.4.5"
     }
 }

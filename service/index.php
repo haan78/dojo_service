@@ -16,10 +16,20 @@ try {
 }
 
 $module = ( PathInfo::item(0) ? PathInfo::item(0) : "service" );
-$mfile = __DIR__."/$module.php";
 
-if ( file_exists( $mfile )  ) {
-    include $mfile;
+if ( $module == "service" ) {
+    include "service.php";
+    new service(1);
+} elseif ($module == "file") {
+    $method = PathInfo::item(1);
+    include "upload.php";
+    if ( $method == "show" ) {
+        Upload::show();
+    } elseif ( $method == "save" ) {
+        Upload::save();
+    } else {
+        die("Method $method not supported");
+    }
 } else {
-    die("File not found $mfile");
+    die("Module not found $module");
 }

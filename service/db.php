@@ -6,6 +6,46 @@ use MongoTools\Collection;
 require_once __DIR__ . "/lib/MongoTools/Tools.php";
 class db
 {
+
+    private function sendinblue($email,$id,$params) {
+        $curl = curl_init();
+    
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.sendinblue.com/v3/smtp/email",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            //CURLOPT_POSTFIELDS =>"{ \"templateId\": $id, \"to\": [ { \"email\": \"$email\" } ], \"params\": { \"url\": \"$url\", \"isim\":\"$eczaci\" }}",
+            CURLOPT_POSTFIELDS =>"{ \"templateId\": $id, \"to\": [ { \"email\": \"$email\" } ], \"params\": ".json_encode($params)."}",
+            CURLOPT_HTTPHEADER => array(
+                "api-key: ".$_ENV["SENDINBLUE_APIKEY"],
+                "Content-Type: application/json"
+            )
+        ));
+    
+        $response = curl_exec($curl);
+        $error = null;
+        if ( $response === FALSE ) {
+            $error = curl_error($curl);
+        } else {
+            $obj = json_decode($response,true);
+            if ( isset($obj["code"]) ) {
+                $error = $obj["code"]." / ".$obj["message"];
+            } elseif (is_null($obj)) {
+                $error = "E-Mail gonderimi basarisiz daha sonra tekrar deneyin($response)";
+            }
+        }
+        curl_close($curl);
+    
+        if (!is_null($error)) {
+            throw new \Exception($error);
+        }
+    }
+
     public static function link() : \MongoDB\Client {
         if ( isset($_ENV["MONGO_CONNECTION_STRING"]) ) {
             return new \MongoDB\Client($_ENV["MONGO_CONNECTION_STRING"]);

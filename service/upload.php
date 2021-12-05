@@ -4,7 +4,7 @@ require_once "validate.php";
 require_once "./lib/Web/PathInfo.php";
 use Web\PathInfo;
 
-class UploadLib {
+class Upload {
 
     public static function save() {
         try {

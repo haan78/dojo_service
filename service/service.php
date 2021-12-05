@@ -114,4 +114,3 @@ class service extends JsonClass {
 }
 service::$SHOW_ERROR_DETAILS = true;
 service::$JSON_FLAGS = JSON_PRETTY_PRINT;
-new service(1);
