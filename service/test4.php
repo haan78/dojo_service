@@ -7,8 +7,7 @@ ini_set('display_errors', TRUE);
 ini_set('display_startup_errors', TRUE);
 
 
-require "./vendor/autoload.php";
-require "./db.php";
-require "./uploadlib.php";
-
-printFile("mongodb://root:12345@mongodb", "dojo","dosya","61a009e632b61a1383569634");
+$st="2021-12-05T21:18:05.931Z";
+$dt = new DateTime($st);
+$dt->setTimezone(new DateTimeZone(date_default_timezone_get()));
+echo $dt->format("d.m.Y H:i:s");

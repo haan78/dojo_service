@@ -47,6 +47,16 @@ class db
         }
     }
 
+    public static function trDateTime(string $isoDateTime,bool $onlyDate = true) : string {
+        $dt = new DateTime($isoDateTime);
+        $dt->setTimezone(new DateTimeZone(date_default_timezone_get()));
+        if ( $onlyDate ) {
+            return $dt->format("d.m.Y");
+        } else {
+            return $dt->format("d.m.Y H:i:s");
+        }        
+    }
+
     public static function link(): \MongoDB\Client
     {
         if (isset($_ENV["MONGO_CONNECTION_STRING"])) {
@@ -287,7 +297,8 @@ class db
         $mongo = self::mongo();
         $projection = [
             '_id' => 1,
-            'ad' => 1
+            'ad' => 1,
+            'img' => 1
         ];
         $res = $mongo->selectCollection("uye")->find(['keikolar' =>  Cast::toISODate($post->tarih)], ['projection' => $projection]);
         return Cast::toTable($res);
@@ -302,7 +313,8 @@ class db
         ], [
             'projection' => [
                 '_id' => 1,
-                'ad' => 1
+                'ad' => 1,
+                'img' => 1
             ]
         ]);
         return Cast::toTable($res);
@@ -397,7 +409,8 @@ class db
 
     public static function gelir($post, $user_text)
     {
-        $mongo = self::mongo();
+        $link = self::link();
+        
         $_id = null;
         $d = [
             "tarih" => Cast::toISODate($post->tarih),
@@ -413,14 +426,39 @@ class db
 
         $d["user_text"] = $user_text;
 
-        if (is_null($post->_id)) {
-            $r = $mongo->selectCollection("gelirgider")->insertOne($d);
-            $_id = (string)$r->getInsertedId();
-        } else {
-            $r = $mongo->selectCollection("gelirgider")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$set' => $d], ["upsert" => true]);
-            $_id = $post->_id;
+        $session = $link->startSession();
+        $session->startTransaction();
+        $mongo = self::database($link);
+        try {
+            if (is_null($post->_id)) {
+                $r = $mongo->selectCollection("gelirgider")->insertOne($d);
+                $_id = (string)$r->getInsertedId();
+    
+            } else {
+                $r = $mongo->selectCollection("gelirgider")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$set' => $d], ["upsert" => true]);
+                $_id = $post->_id;
+            }
+    
+            if ( $post->sendemail && $post->ay > 0 ) {
+                $data = $mongo->selectCollection("uye")->findOne(["_id" => Cast::toObjectId($post->uye_id)]);
+                if (!is_null($data)) {
+                    $email = $data["email"];
+                    $params = [
+                        "UYE_AD" => $data["ad"],
+                        "AY" => $post->ay,
+                        "YIL" => $post->yil,
+                        "TARIH" => self::trDateTime($post->tarih)
+                    ];
+                    self::sendinblue($email,2,$params);
+                } else {
+                    throw new Exception("Uye bulunamadi");
+                }
+            }
+            $session->commitTransaction();
+        } catch (Exception $ex) {
+            $session->abortTransaction();
+            throw $ex;
         }
-
         return $_id;
     }
 
