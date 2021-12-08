@@ -132,6 +132,9 @@ class db
                 }
             } else {
                 $_id = $post->_id;
+                if ( $post->sendemail ) {
+                    $set["email_activation"] = false;
+                }
                 $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($_id) ], [ '$set' => $set]);
             }
 
@@ -199,7 +202,8 @@ class db
             'sinavlar' => 1,
             'keikolar' => 1,
             'aidatlar' => 1,
-            'img' => 1
+            'img' => 1,
+            'email_activation'=>1
         ];
 
         $fnc = function ($row) {
@@ -323,6 +327,7 @@ class db
     public static function yoklamaya_ekle($post)
     {
         $mongo = self::mongo();
+        self::checkMailValidated($mongo,$post->_id);
         $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$addToSet' => ['keikolar' =>  Cast::toISODate($post->tarih)]]);
         return true;
     }
@@ -330,6 +335,7 @@ class db
     public static function yoklamadan_sil($post)
     {
         $mongo = self::mongo();
+        self::checkMailValidated($mongo,$post->_id);
         $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$pull' => ['keikolar' =>  Cast::toISODate($post->tarih)]]);
         return true;
     }
@@ -352,6 +358,7 @@ class db
     public static function sinav_ekle($post)
     {
         $mongo = self::mongo();
+        self::checkMailValidated($mongo,$post->_id);
         $d = [
             "tarih" => Cast::toISODate($post->tarih),
             "seviye" => $post->seviye,
@@ -366,6 +373,7 @@ class db
     public static function sinav_sil($post)
     {
         $mongo = self::mongo();
+        self::checkMailValidated($mongo,$post->_id);
         $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$pull' => ['sinavlar' =>  ["seviye" => $post->seviye]]]);
         return true;
     }
@@ -407,6 +415,19 @@ class db
         return Collection::remove($mongo, 'kullanici', $post->_id);
     }
 
+    private static function checkMailValidated(\MongoDB\Database $mongo,$_id) {
+        $projection = ["email_activation"=>1];
+        $data = $mongo->selectCollection("uye")->findOne(["_id"=>Cast::toObjectId($_id)],['projection'=>$projection]);
+        if ($data!==null) {
+            $val = ( isset($data["email_activation"]) ? $data["email_activation"] : false );
+            if (!$val) {
+                throw new Exception("Uye uyenin epostasi dogrulanmamis");
+            }
+        } else {
+            throw new Exception("Uye bulunamadi");
+        }
+    }
+
     public static function gelir($post, $user_text)
     {
         $link = self::link();
@@ -430,6 +451,7 @@ class db
         $session->startTransaction();
         $mongo = self::database($link);
         try {
+            self::checkMailValidated($mongo,$post->uye_id);
             if (is_null($post->_id)) {
                 $r = $mongo->selectCollection("gelirgider")->insertOne($d);
                 $_id = (string)$r->getInsertedId();
@@ -465,7 +487,7 @@ class db
     public static function gelirgider_sil(stdClass $post)
     {
         $mongo = self::mongo();
-        $mongo->selectCollection("gelirgider")->deteteOne(["_id" => Cast::toObjectId($post->_id)]);
+        $mongo->selectCollection("gelirgider")->deleteOne(["_id" => Cast::toObjectId($post->_id)]);
         return true;
     }
 
@@ -518,19 +540,23 @@ class db
         return Cast::toTable($res);
     }
 
-    public static function img64($id)
-    {
+    public static function validateEmail(string $_id) {
         $mongo = self::mongo();
-        $data = $mongo->selectCollection("uye")->findOne(["_id" => Cast::toObjectId($id)]);
-        if (is_null($data)) {
-            throw new Exception("Imge not found");
-        }
-        $b64 = $data["img"];
-
-        if (is_string($b64)) {
-            return $b64;
+        $dt = (new DateTime("now"))->modify('-1 day');
+        $mdt = Cast::toUTCDateTime($dt);
+        $result = $mongo->selectCollection("email_activation")->findOne([
+            "_id"=>Cast::toObjectId($_id),
+            'create_at'=>['$gte'=>$mdt]
+        ]);
+        //var_dump($dt); var_dump($result); die();
+        if ( !is_null($result) ) {
+            $uye_id = $result["uye_id"];
+            $res = $mongo->selectCollection("uye")->updateOne(['_id'=>$uye_id],['$set'=>["email_activation"=>true]]);
+            if ( !$res->isAcknowledged() ) {
+                throw new Exception("Aktivasyon gerceklestirilemedi");
+            }
         } else {
-            throw new Exception("Imge not found");
+            throw new Exception("Aktivasyon kaydi bulunamadi");
         }
     }
 }

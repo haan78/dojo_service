@@ -30,6 +30,8 @@ if ( $module == "service" ) {
     } else {
         die("Method $method not supported");
     }
+} elseif ( $module == "emailactivation" ) {
+    include_once "emailactivation.php";
 } else {
     die("Module not found $module");
 }
