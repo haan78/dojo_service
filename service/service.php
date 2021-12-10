@@ -111,6 +111,10 @@ class service extends JsonClass {
         return db::gelir($post,$this->text);
     }
 
+    public function sendactivation($post) {
+        return db::sendactivation($post);
+    }
+
 }
 service::$SHOW_ERROR_DETAILS = true;
 service::$JSON_FLAGS = JSON_PRETTY_PRINT;

@@ -103,6 +103,30 @@ class db
         }
     }
 
+    public static function sendactivation($post) {
+        $mongo = self::mongo();
+        $result = $mongo->selectCollection("uye")->findOne(["_id"=>Cast::toObjectId($post->_id)]);
+        if ( !is_null($result) && ( isset($result["email"]) ) ) {
+            $email = $result["email"];
+            $ad = $result["ad"];
+            $ed = [
+                "email" => $email,
+                "uye_id" => Cast::toObjectId($post->_id),
+                "create_at" => new \MongoDB\BSON\UTCDateTime(),
+                "update_at" => null
+            ];
+            $res = $mongo->selectCollection("email_activation")->insertOne( $ed );
+            $activationid = (string)$res->getInsertedId();
+            self::sendinblue($email, 1, [
+                "AKTIVASYON_URL" => $_ENV["SERVICE_ROOT"]."/emailactivation/$activationid",
+                "UYE_AD" => $ad
+            ]);
+            return $email;
+        } else {
+            throw new Exception("Uye epostasi bulunamadi");
+        }
+    }
+
     public static function uyeekle($post)
     {
         $set = [
@@ -145,8 +169,8 @@ class db
                     "create_at" => new \MongoDB\BSON\UTCDateTime(),
                     "update_at" => null
                 ];
-                $result = $mongo->selectCollection("email_activation")->updateOne( [ "email"=>$post->email ],[ '$set' => $ed ],['upsert' => true] );
-                $activationid = (string)$result->getUpsertedId();
+                $result = $mongo->selectCollection("email_activation")->insertOne( $ed );
+                $activationid = (string)$result->getInsertedId();
                 self::sendinblue($post->email, 1, [
                     "AKTIVASYON_URL" => $_ENV["SERVICE_ROOT"]."/emailactivation/$activationid",
                     "UYE_AD" => $post->ad
@@ -172,6 +196,10 @@ class db
         $match = [];
         if (property_exists($post, "active")) {
             $match["active"] = $post->active;
+        }
+
+        if ( property_exists($post,"_id") && !is_null($post->_id) ) {
+            $match["_id"] = Cast::toObjectId($post->_id);
         }
 
         $lookup = [
@@ -230,7 +258,7 @@ class db
                 array_push($aidatlar, $tar);
             }
 
-            $r->aidateksigi = array_diff($keikolar, $aidatlar);
+            $r->aidateksigi = array_values(array_diff($keikolar, $aidatlar));
             unset($r->keikolar);
             unset($r->aidatlar);
             return $r;
@@ -313,6 +341,7 @@ class db
         $mongo = self::mongo();
         $res = $mongo->selectCollection("uye")->find([
             'active' => true,
+            'email_activation' => true, //eposta dogrulamayan keikoya giremez!!!
             'keikolar' => ['$nin' => [Cast::toISODate($post->tarih)]]
         ], [
             'projection' => [
@@ -451,7 +480,6 @@ class db
         $session->startTransaction();
         $mongo = self::database($link);
         try {
-            self::checkMailValidated($mongo,$post->uye_id);
             if (is_null($post->_id)) {
                 $r = $mongo->selectCollection("gelirgider")->insertOne($d);
                 $_id = (string)$r->getInsertedId();
