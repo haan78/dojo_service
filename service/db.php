@@ -546,8 +546,7 @@ class db
             "aciklama" => $post->aciklama,
             "yil" => $post->yil,
             "ay" => $post->ay,
-            "user" => $post->user,
-            "uye_id" => null
+            "uye_id" => Cast::toObjectId($post->uye_id)
         ];
         $d["user_text"] = $user_text;
         if (is_null($post->_id)) {
@@ -564,7 +563,7 @@ class db
     public static function giderler($post)
     {
         $mongo = self::mongo();
-        $res = $mongo->selectCollection("gelirgider")->find([]);
+        $res = $mongo->selectCollection("gelirgider")->find(["tur"=>"GIDER"]);
         return Cast::toTable($res);
     }
 
