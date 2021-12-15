@@ -111,6 +111,10 @@ class service extends JsonClass {
         return db::gelir($post,$this->text);
     }
 
+    public function gelirgiderlist($post) {
+        return db::gelirgiderlist($post);
+    }
+
     public function sendactivation($post) {
         return db::sendactivation($post);
     }

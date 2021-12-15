@@ -137,7 +137,7 @@ class db
             "dogum" => new  \MongoDB\BSON\UTCDateTime(strtotime($post->dogum) * 1000),
             "ogrenci" => $post->ogrenci,
             "active" => $post->active,
-            "img" => $post->img
+            "img" => $post->img,
         ];
         $link = self::link();
         $session = $link->startSession();
@@ -149,6 +149,8 @@ class db
         try {
             if (is_null($post->_id)) {
                 $set["email_activation"] = false;
+                $set["keikolar"] = [];
+                $set["sinavlar"] = [];
                 $res = $mongo->selectCollection("uye")->insertOne($set);
                 $_id = (string)$res->getInsertedId();
                 if ( is_null($_id) || empty($_id) ) {
@@ -202,6 +204,10 @@ class db
             $match["_id"] = Cast::toObjectId($post->_id);
         }
 
+        if ( property_exists($post,"email_activation") && !is_null($post->email_activation) ) {
+            $match["email_activation"] = $post->email_activation;
+        }
+
         $lookup = [
             'from' => 'gelirgider',
             'localField' => '_id',
@@ -219,6 +225,8 @@ class db
             'as' => 'aidatlar'
         ];
 
+        $ucayonce = Cast::toUTCDateTime( (new DateTime())->sub(new \DateInterval('P3M')) );
+
         $project = [
             'ad' => 1,
             'cinsiyet' => 1,
@@ -227,14 +235,23 @@ class db
             'ogrenci' => 1,
             'active' => 1,
             'dogum' => 1,
-            'sinavlar' => 1,
             'keikolar' => 1,
-            'aidatlar' => 1,
             'img' => 1,
-            'email_activation'=>1
+            'email_activation'=>1,
+            'son3ay' => [
+                '$size' => [
+                    '$filter' => [
+                        'input'=>'$keikolar',
+                        'as'=>'tarih',
+                        'cond' => [ '$gte' => [ '$$tarih', $ucayonce ] ]
+                    ]
+                ]                
+            ],
+            'sinavlar' => 1
         ];
 
         $fnc = function ($row) {
+            //var_dump($row); die();
             $r = $row;
             if (!property_exists($r, "keikolar")) {
                 $r->keikolar = [];
@@ -250,7 +267,7 @@ class db
                 }
             }
             $keikolar = array_unique($arr, SORT_STRING);
-
+            
             $aidatlar = [];
             for ($i = 0; $i < count($r->aidatlar); $i++) {
                 $a = $r->aidatlar[$i];
@@ -267,8 +284,8 @@ class db
         return Cast::toTable(
             $mongo->selectCollection("uye")->aggregate([
                 ['$match' => $match],
-                ['$lookup' => $lookup],
                 ['$project' => $project],
+                ['$lookup' => $lookup],
                 ['$limit' => $limit]
             ]),
             $fnc
@@ -564,6 +581,19 @@ class db
     {
         $mongo = self::mongo();
         $res = $mongo->selectCollection("gelirgider")->find(["tur"=>"GIDER"]);
+        return Cast::toTable($res);
+    }
+
+    public static function gelirgiderlist($post) {
+        $mongo = self::mongo();
+        $q = [
+            "tarih"=>[ '$gte'=>Cast::toISODate($post->baslangic), '$lte' => Cast::toISODate($post->bitis) ]
+        ];
+        if ( !is_null($post->tur) ) {
+            $q["tur"] = $post->tur;
+        }
+
+        $res = $mongo->selectCollection("gelirgider")->find($q);
         return Cast::toTable($res);
     }
 
