@@ -593,8 +593,83 @@ class db
             $q["tur"] = $post->tur;
         }
 
-        $res = $mongo->selectCollection("gelirgider")->find($q);
+        $res = $mongo->selectCollection("gelirgider")->aggregate([
+            [ '$match' => $q ],
+            [ '$lookup' => [ 'from' => 'uye', 'localField'=>'uye_id', 'foreignField'=>'_id', 'as'=>'uye' ]  ],
+            [ '$unwind' => [ 'path' => '$uye' ] ],
+            [ '$project' => [
+                '_id'=>1,
+                'tur'=>1,
+                'kasa'=>1,
+                'aciklama'=>1,
+                'tarih' => 1,
+                'tutar' => 1,
+                'tanim' => 1,
+                'yil' => 1,
+                'ay' => 1,
+                'uye_ad' => '$uye.ad',
+                'uye_id' => 1,
+                'user_text' => 1
+            ] ]
+        ]);
         return Cast::toTable($res);
+    }
+
+    public static function ozet($post) {
+        $mongo = self::mongo();
+        $keiko = [
+            [ '$project' => [
+                '_id'=>0,
+                'keikolar'=>[ '$filter' => [
+                    'input' => '$keikolar',
+                    'as' => 'tarih',
+                    'cond' => [ '$and' => [
+                        [ '$gte' => ['$$tarih', Cast::toISODate($post->baslangic) ] ],
+                        [ '$lte' => ['$$tarih', Cast::toISODate($post->bitis) ] ]
+                    ]]
+                ] ]
+            ] ],
+            [ '$unwind' => '$keikolar' ],
+            [ '$group' => [
+                '_id' => '"$keikolar"',
+                't1'=> [ '$sum'=>1 ]
+            ] ],
+            [ '$group' => [
+                '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$_id' ] ],
+                'ortalama' => [ '$avg'=>'$t1' ],
+                'toplam' => [ '$sum' => '$t1' ],
+                'sayi' => [ '$sum' => 1 ]
+            ] ],
+            [ '$sort'=>[ '_id' => 1 ] ]
+        ];
+
+        $gelir = [
+            [ '$match' => [
+                'tur' => 'GELIR',
+                'tarih' => [ '$gte'=> Cast::toISODate($post->baslangic), '$lte'=>Cast::toISODate($post->bitis) ]
+            ] ],
+            [ '$group' => [
+                '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$tarih' ] ],
+                'toplam' => [ '$sum' => '$tutar' ]
+            ] ]
+        ];
+
+        $gider = [
+            [ '$match' => [
+                'tur' => 'GIDER',
+                'tarih' => [ '$gte'=> Cast::toISODate($post->baslangic), '$lte'=>Cast::toISODate($post->bitis) ]
+            ] ],
+            [ '$group' => [
+                '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$tarih' ] ],
+                'toplam' => [ '$sum' => '$tutar' ]
+            ] ]
+        ];
+
+        return [
+            "keiko" => Cast::toTable($mongo->selectCollection("uye")->aggregate($keiko)),
+            "gelir" => Cast::toTable($mongo->selectCollection("uye")->aggregate($gelir)),
+            "gider" => Cast::toTable($mongo->selectCollection("uye")->aggregate($gider))
+        ];
     }
 
     public static function validateEmail(string $_id) {
