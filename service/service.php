@@ -119,6 +119,10 @@ class service extends JsonClass {
         return db::sendactivation($post);
     }
 
+    public function ozet($post) {
+        return db::ozet($post);
+    }
+
 }
 service::$SHOW_ERROR_DETAILS = true;
 service::$JSON_FLAGS = JSON_PRETTY_PRINT;

@@ -67,6 +67,27 @@ class Cast {
             return $list;
         }
 
+        public static function toStdObject(\MongoDB\Driver\Cursor $cursor, ?callable $fnc = null) : stdClass {
+            $objarr = [];
+            $it = new \IteratorIterator($cursor);
+            $it->rewind();
+            while ($doc = $it->current()) {
+                $row = self::convert($doc);
+                //var_dump($row);
+                if ( property_exists($row,"_id") ) {
+                    $_id = $row->_id;
+                    if ( is_null($fnc) ) {
+                        $objarr[$_id] = $row;
+                    } else {
+                        $objarr[$_id] = $fnc($row);
+                    }
+                    unset($objarr[$_id]->_id);
+                }             
+                $it->next();
+            }
+            return (object)$objarr;
+        }
+
         public static function transerArray(\MongoDB\Model\BSONArray $arr,?callable $fnc = null) {
             $list = [];
             for($i=0; $i<count($arr); $i++ ) {

@@ -617,28 +617,30 @@ class db
 
     public static function ozet($post) {
         $mongo = self::mongo();
+        $baslangic = Cast::toISODate($post->baslangic);
+        $bitis = Cast::toISODate($post->bitis);
         $keiko = [
             [ '$project' => [
-                '_id'=>0,
+                '_id'=>1,
                 'keikolar'=>[ '$filter' => [
                     'input' => '$keikolar',
                     'as' => 'tarih',
                     'cond' => [ '$and' => [
-                        [ '$gte' => ['$$tarih', Cast::toISODate($post->baslangic) ] ],
-                        [ '$lte' => ['$$tarih', Cast::toISODate($post->bitis) ] ]
+                        [ '$gte' => ['$$tarih', $baslangic ] ],
+                        [ '$lte' => ['$$tarih', $bitis ] ]
                     ]]
                 ] ]
             ] ],
             [ '$unwind' => '$keikolar' ],
             [ '$group' => [
-                '_id' => '"$keikolar"',
+                '_id' => '$keikolar',
                 't1'=> [ '$sum'=>1 ]
             ] ],
             [ '$group' => [
                 '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$_id' ] ],
-                'ortalama' => [ '$avg'=>'$t1' ],
+                'deger' => [ '$avg'=>'$t1' ]/*,
                 'toplam' => [ '$sum' => '$t1' ],
-                'sayi' => [ '$sum' => 1 ]
+                'sayi' => [ '$sum' => 1 ]*/
             ] ],
             [ '$sort'=>[ '_id' => 1 ] ]
         ];
@@ -646,29 +648,30 @@ class db
         $gelir = [
             [ '$match' => [
                 'tur' => 'GELIR',
-                'tarih' => [ '$gte'=> Cast::toISODate($post->baslangic), '$lte'=>Cast::toISODate($post->bitis) ]
+                'tarih' => [ '$gte'=> $baslangic, '$lte'=>$bitis ]
             ] ],
             [ '$group' => [
                 '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$tarih' ] ],
-                'toplam' => [ '$sum' => '$tutar' ]
+                'deger' => [ '$sum' => '$tutar' ]
             ] ]
         ];
 
         $gider = [
             [ '$match' => [
                 'tur' => 'GIDER',
-                'tarih' => [ '$gte'=> Cast::toISODate($post->baslangic), '$lte'=>Cast::toISODate($post->bitis) ]
+                'tarih' => [ '$gte'=> $baslangic, '$lte'=>$bitis ]
             ] ],
             [ '$group' => [
                 '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$tarih' ] ],
-                'toplam' => [ '$sum' => '$tutar' ]
+                'deger' => [ '$sum' => '$tutar' ]
             ] ]
-        ];
-
-        return [
-            "keiko" => Cast::toTable($mongo->selectCollection("uye")->aggregate($keiko)),
-            "gelir" => Cast::toTable($mongo->selectCollection("uye")->aggregate($gelir)),
-            "gider" => Cast::toTable($mongo->selectCollection("uye")->aggregate($gider))
+        ];        
+        //var_dump($keiko);
+        //return Cast::toStdObject($mongo->selectCollection("uye")->aggregate($keiko));
+        return (object)[
+            "keiko" => Cast::toStdObject($mongo->selectCollection("uye")->aggregate($keiko)),
+            "gelir" => Cast::toStdObject($mongo->selectCollection("gelirgider")->aggregate($gelir)),
+            "gider" => Cast::toStdObject($mongo->selectCollection("gelirgider")->aggregate($gider))
         ];
     }
 
