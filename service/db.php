@@ -480,7 +480,7 @@ class db
         
         $_id = null;
         $d = [
-            "tarih" => Cast::toISODate($post->tarih),
+            "tarih" => Cast::toISODate($post->tarih,true),
             "tur" => "GELIR",
             "tanim" => $post->tanim,
             "tutar" => $post->tutar,
@@ -580,7 +580,11 @@ class db
     public static function giderler($post)
     {
         $mongo = self::mongo();
-        $res = $mongo->selectCollection("gelirgider")->find(["tur"=>"GIDER"]);
+        $ara = ["tur"=>"GIDER"];
+        if ( property_exists($post,"baslangic") && property_exists($post,"bitis") ) {
+            $ara["tarih"] = [ '$gte'=>Cast::toISODate($post->baslangic), '$lte' => Cast::toISODate($post->bitis) ];
+        }
+        $res = $mongo->selectCollection("gelirgider")->find($ara);
         return Cast::toTable($res);
     }
 

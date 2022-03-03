@@ -7,8 +7,17 @@ use stdClass;
 class Cast {
         public static bool $LOCAL_TIME_ZONE = false;
         public static string $DATE_TIME_FORMAT = "Y-m-d\TH:i:s.000\Z"; //c
-        public static function toISODate(string $iso) {
-            return new  \MongoDB\BSON\UTCDateTime(strtotime($iso)*1000);
+        public static function toISODate(string $iso,bool $justdate=true) {
+            if ($justdate) {
+                //die($iso."  ".substr($iso,0,10));
+                $t = strtotime(substr($iso,0,10)."T00:00:00.000Z")*1000;
+                return new  \MongoDB\BSON\UTCDateTime($t);
+            } else {
+                $t = ( strtotime($iso))*1000;
+                return new  \MongoDB\BSON\UTCDateTime($t);
+            }
+
+            
         }
         public static function toUTCDateTime(\DateTime $dt)  : \MongoDB\BSON\UTCDateTime {
             return new  \MongoDB\BSON\UTCDateTime($dt);
