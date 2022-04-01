@@ -47,14 +47,15 @@ class db
         }
     }
 
-    public static function trDateTime(string $isoDateTime,bool $onlyDate = true) : string {
+    public static function trDateTime(string $isoDateTime, bool $onlyDate = true): string
+    {
         $dt = new DateTime($isoDateTime);
         $dt->setTimezone(new DateTimeZone(date_default_timezone_get()));
-        if ( $onlyDate ) {
+        if ($onlyDate) {
             return $dt->format("d.m.Y");
         } else {
             return $dt->format("d.m.Y H:i:s");
-        }        
+        }
     }
 
     public static function link(): \MongoDB\Client
@@ -103,10 +104,11 @@ class db
         }
     }
 
-    public static function sendactivation($post) {
+    public static function sendactivation($post)
+    {
         $mongo = self::mongo();
-        $result = $mongo->selectCollection("uye")->findOne(["_id"=>Cast::toObjectId($post->_id)]);
-        if ( !is_null($result) && ( isset($result["email"]) ) ) {
+        $result = $mongo->selectCollection("uye")->findOne(["_id" => Cast::toObjectId($post->_id)]);
+        if (!is_null($result) && (isset($result["email"]))) {
             $email = $result["email"];
             $ad = $result["ad"];
             $ed = [
@@ -115,10 +117,10 @@ class db
                 "create_at" => new \MongoDB\BSON\UTCDateTime(),
                 "update_at" => null
             ];
-            $res = $mongo->selectCollection("email_activation")->insertOne( $ed );
+            $res = $mongo->selectCollection("email_activation")->insertOne($ed);
             $activationid = (string)$res->getInsertedId();
             self::sendinblue($email, 1, [
-                "AKTIVASYON_URL" => $_ENV["SERVICE_ROOT"]."/emailactivation/$activationid",
+                "AKTIVASYON_URL" => $_ENV["SERVICE_ROOT"] . "/emailactivation/$activationid",
                 "UYE_AD" => $ad
             ]);
             return $email;
@@ -143,7 +145,7 @@ class db
         $session = $link->startSession();
         $session->startTransaction();
         $mongo = self::database($link);
-        
+
         $_id = null;
         $activationid = "";
         try {
@@ -153,28 +155,28 @@ class db
                 $set["sinavlar"] = [];
                 $res = $mongo->selectCollection("uye")->insertOne($set);
                 $_id = (string)$res->getInsertedId();
-                if ( is_null($_id) || empty($_id) ) {
+                if (is_null($_id) || empty($_id)) {
                     throw new Exception("Nasıl olabilr böyle bişey");
                 }
             } else {
                 $_id = $post->_id;
-                if ( $post->sendemail ) {
+                if ($post->sendemail) {
                     $set["email_activation"] = false;
                 }
-                $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($_id) ], [ '$set' => $set]);
+                $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($_id)], ['$set' => $set]);
             }
 
-            if ( $post->sendemail ) {
+            if ($post->sendemail) {
                 $ed = [
                     "email" => $post->email,
                     "uye_id" => Cast::toObjectId($_id),
                     "create_at" => new \MongoDB\BSON\UTCDateTime(),
                     "update_at" => null
                 ];
-                $result = $mongo->selectCollection("email_activation")->insertOne( $ed );
+                $result = $mongo->selectCollection("email_activation")->insertOne($ed);
                 $activationid = (string)$result->getInsertedId();
                 self::sendinblue($post->email, 1, [
-                    "AKTIVASYON_URL" => $_ENV["SERVICE_ROOT"]."/emailactivation/$activationid",
+                    "AKTIVASYON_URL" => $_ENV["SERVICE_ROOT"] . "/emailactivation/$activationid",
                     "UYE_AD" => $post->ad
                 ]);
             }
@@ -189,107 +191,104 @@ class db
 
     public static function uyeler($post)
     {
-        $mongo = self::mongo();
-        $limit = 1000;
-        if (property_exists($post, "limit")) {
-            $limit = $post->limit;
-        }
-
-        $match = [];
-        if (property_exists($post, "active")) {
-            $match["active"] = $post->active;
-        }
-
-        if ( property_exists($post,"_id") && !is_null($post->_id) ) {
-            $match["_id"] = Cast::toObjectId($post->_id);
-        }
-
-        if ( property_exists($post,"email_activation") && !is_null($post->email_activation) ) {
-            $match["email_activation"] = $post->email_activation;
-        }
-
-        $lookup = [
-            'from' => 'gelirgider',
-            'localField' => '_id',
-            'foreignField' => 'uye_id',
-            'pipeline' => [
-                [
-                    '$match' => [
+        $mongo = db::mongo();
+        $ISONOW = Cast::toUTCDateTime();
+        $query = [
+            ['$match' => [
+                'active' => true,
+                'email_activation' => true
+            ]],
+            ['$lookup' => [
+                'from' => 'gelirgider',
+                'localField' => '_id',
+                'foreignField' => 'uye_id',
+                'as' => 'aidatlar',
+                'pipeline' => [
+                    ['$match' => [
                         '$and' => [
                             ['$expr' => ['$eq' => ['$tur', 'GELIR']]],
                             ['$expr' => ['$gt' => ['$ay', 0]]]
                         ]
-                    ]
+                    ]],
+                    ['$project' => [
+                        '_id' => 0,
+                        'yilay' => [
+                            '$dateToString' => [
+                                'format' => '%Y-%m',
+                                'date' => [
+                                    '$dateFromParts' => [
+                                        'year' => '$yil',
+                                        'month' => '$ay',
+                                        'day' => 1
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]],
+                    ['$group' => [
+                        '_id' => '$yilay'
+                    ]]
+                ]
+            ]],
+            [
+                '$addFields' => [
+                    'sonkeiko' => ['$max' => '$keikolar'],
+                    'son3ay' => [
+                        '$size' => [
+                            '$filter' => [
+                                'input' => '$keikolar',
+                                'as' => 'k',
+                                'cond' => [
+                                    '$gte' => [
+                                        '$$k',
+                                        [
+                                            '$dateAdd' => [
+                                                'startDate' => $ISONOW, 'unit' => 'month', 'amount' => -3
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'keikoaylar' => ['$filter' => [
+                        'input' => ['$setUnion' => ['$map' => [
+                            'input' => '$keikolar',
+                            'as' => 'ktar',
+                            'in' => ['$dateToString' => ['format' => '%Y-%m', 'date' => '$$ktar']]
+                        ]]],
+                        'as' => 'ka',
+                        'cond' => ['$ne' => ['$$ka', ['$dateToString', 'format' => '%Y-%m', 'date' => $ISONOW]]]
+                    ]],
+                    'aidatlar' => '$aidatlar._id'
                 ]
             ],
-            'as' => 'aidatlar'
-        ];
-
-        $ucayonce = Cast::toUTCDateTime( (new DateTime())->sub(new \DateInterval('P3M')) );
-
-        $project = [
-            'ad' => 1,
-            'cinsiyet' => 1,
-            'email' => 1,
-            'ekfno' => 1,
-            'ogrenci' => 1,
-            'active' => 1,
-            'dogum' => 1,
-            'keikolar' => 1,
-            'img' => 1,
-            'email_activation'=>1,
-            'son3ay' => [
-                '$size' => [
-                    '$filter' => [
-                        'input'=>'$keikolar',
-                        'as'=>'tarih',
-                        'cond' => [ '$gte' => [ '$$tarih', $ucayonce ] ]
-                    ]
-                ]                
+            [
+                '$addFields' => ['aidateksigi' => ['$setDifference' => ['$keikoaylar', '$aidatlar']]]
             ],
-            'sinavlar' => 1
+            [
+                '$unset' => ['keikoaylar', 'keikolar', 'aidatlar', 'eski_uye_id']
+            ],
+            [
+                '$limit' => 100
+            ]
         ];
 
-        $fnc = function ($row) {
-            //var_dump($row); die();
-            $r = $row;
-            if (!property_exists($r, "keikolar")) {
-                $r->keikolar = [];
+        if (property_exists($post, "_id") && !is_null($post->_id)) {
+            $query[0]['$match'] = ['_id' => Cast::toObjectId($post->_id)];
+        } else {
+            if (property_exists($post, "active")) {
+                $query[0]['$match']["active"] = $post->active;
             }
-            $r->sonkeiko = (count($r->keikolar) > 0 ? max($r->keikolar) : null);
-
-            $arr = [];
-            $thismounth = date("Y-m");
-            for ($i = 0; $i < count($r->keikolar); $i++) {
-                $mounth = substr($r->keikolar[$i], 0, 7);
-                if ($mounth != $thismounth) {
-                    array_push($arr, $mounth);
-                }
+            if (property_exists($post, "email_activation") && !is_null($post->email_activation)) {
+                $query[0]['$match']["email_activation"] = $post->email_activation;
             }
-            $keikolar = array_unique($arr, SORT_STRING);
-            
-            $aidatlar = [];
-            for ($i = 0; $i < count($r->aidatlar); $i++) {
-                $a = $r->aidatlar[$i];
-                $tar = $a->yil . "-" . str_pad($a->ay, 2, "0", STR_PAD_LEFT);
-                array_push($aidatlar, $tar);
+            if (property_exists($post, "limit")) {
+                $query[count($query) - 1]['$limit'] = $post->limit;
             }
+        }
 
-            $r->aidateksigi = array_values(array_diff($keikolar, $aidatlar));
-            unset($r->keikolar);
-            unset($r->aidatlar);
-            return $r;
-        };
-
-        return Cast::toTable(
-            $mongo->selectCollection("uye")->aggregate([
-                ['$match' => $match],
-                ['$project' => $project],
-                ['$lookup' => $lookup],
-                ['$limit' => $limit]
-            ]),
-            $fnc
-        );
+        return Cast::toTable($mongo->selectCollection("uye")->aggregate($query));
     }
 
     public static function parola($post)
@@ -373,7 +372,7 @@ class db
     public static function yoklamaya_ekle($post)
     {
         $mongo = self::mongo();
-        self::checkMailValidated($mongo,$post->_id);
+        self::checkMailValidated($mongo, $post->_id);
         $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$addToSet' => ['keikolar' =>  Cast::toISODate($post->tarih)]]);
         return true;
     }
@@ -381,7 +380,7 @@ class db
     public static function yoklamadan_sil($post)
     {
         $mongo = self::mongo();
-        self::checkMailValidated($mongo,$post->_id);
+        self::checkMailValidated($mongo, $post->_id);
         $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$pull' => ['keikolar' =>  Cast::toISODate($post->tarih)]]);
         return true;
     }
@@ -404,7 +403,7 @@ class db
     public static function sinav_ekle($post)
     {
         $mongo = self::mongo();
-        self::checkMailValidated($mongo,$post->_id);
+        self::checkMailValidated($mongo, $post->_id);
         $d = [
             "tarih" => Cast::toISODate($post->tarih),
             "seviye" => $post->seviye,
@@ -419,7 +418,7 @@ class db
     public static function sinav_sil($post)
     {
         $mongo = self::mongo();
-        self::checkMailValidated($mongo,$post->_id);
+        self::checkMailValidated($mongo, $post->_id);
         $mongo->selectCollection("uye")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$pull' => ['sinavlar' =>  ["seviye" => $post->seviye]]]);
         return true;
     }
@@ -461,11 +460,12 @@ class db
         return Collection::remove($mongo, 'kullanici', $post->_id);
     }
 
-    private static function checkMailValidated(\MongoDB\Database $mongo,$_id) {
-        $projection = ["email_activation"=>1];
-        $data = $mongo->selectCollection("uye")->findOne(["_id"=>Cast::toObjectId($_id)],['projection'=>$projection]);
-        if ($data!==null) {
-            $val = ( isset($data["email_activation"]) ? $data["email_activation"] : false );
+    private static function checkMailValidated(\MongoDB\Database $mongo, $_id)
+    {
+        $projection = ["email_activation" => 1];
+        $data = $mongo->selectCollection("uye")->findOne(["_id" => Cast::toObjectId($_id)], ['projection' => $projection]);
+        if ($data !== null) {
+            $val = (isset($data["email_activation"]) ? $data["email_activation"] : false);
             if (!$val) {
                 throw new Exception("Uye uyenin epostasi dogrulanmamis");
             }
@@ -477,10 +477,10 @@ class db
     public static function gelir($post, $user_text)
     {
         $link = self::link();
-        
+
         $_id = null;
         $d = [
-            "tarih" => Cast::toISODate($post->tarih,true),
+            "tarih" => Cast::toISODate($post->tarih, true),
             "tur" => "GELIR",
             "tanim" => $post->tanim,
             "tutar" => $post->tutar,
@@ -500,13 +500,12 @@ class db
             if (is_null($post->_id)) {
                 $r = $mongo->selectCollection("gelirgider")->insertOne($d);
                 $_id = (string)$r->getInsertedId();
-    
             } else {
                 $r = $mongo->selectCollection("gelirgider")->updateOne(["_id" => Cast::toObjectId($post->_id)], ['$set' => $d], ["upsert" => true]);
                 $_id = $post->_id;
             }
-    
-            if ( $post->sendemail && $post->ay > 0 ) {
+
+            if ($post->sendemail && $post->ay > 0) {
                 $data = $mongo->selectCollection("uye")->findOne(["_id" => Cast::toObjectId($post->uye_id)]);
                 if (!is_null($data)) {
                     $email = $data["email"];
@@ -516,7 +515,7 @@ class db
                         "YIL" => $post->yil,
                         "TARIH" => self::trDateTime($post->tarih)
                     ];
-                    self::sendinblue($email,2,$params);
+                    self::sendinblue($email, 2, $params);
                 } else {
                     throw new Exception("Uye bulunamadi");
                 }
@@ -580,32 +579,33 @@ class db
     public static function giderler($post)
     {
         $mongo = self::mongo();
-        $ara = ["tur"=>"GIDER"];
-        if ( property_exists($post,"baslangic") && property_exists($post,"bitis") ) {
-            $ara["tarih"] = [ '$gte'=>Cast::toISODate($post->baslangic), '$lte' => Cast::toISODate($post->bitis) ];
+        $ara = ["tur" => "GIDER"];
+        if (property_exists($post, "baslangic") && property_exists($post, "bitis")) {
+            $ara["tarih"] = ['$gte' => Cast::toISODate($post->baslangic), '$lte' => Cast::toISODate($post->bitis)];
         }
         $res = $mongo->selectCollection("gelirgider")->find($ara);
         return Cast::toTable($res);
     }
 
-    public static function gelirgiderlist($post) {
+    public static function gelirgiderlist($post)
+    {
         $mongo = self::mongo();
         $q = [
-            "tarih"=>[ '$gte'=>Cast::toISODate($post->baslangic), '$lte' => Cast::toISODate($post->bitis) ]
+            "tarih" => ['$gte' => Cast::toISODate($post->baslangic), '$lte' => Cast::toISODate($post->bitis)]
         ];
-        if ( !is_null($post->tur) ) {
+        if (!is_null($post->tur)) {
             $q["tur"] = $post->tur;
         }
 
         $res = $mongo->selectCollection("gelirgider")->aggregate([
-            [ '$match' => $q ],
-            [ '$lookup' => [ 'from' => 'uye', 'localField'=>'uye_id', 'foreignField'=>'_id', 'as'=>'uye' ]  ],
-            [ '$unwind' => [ 'path' => '$uye' ] ],
-            [ '$project' => [
-                '_id'=>1,
-                'tur'=>1,
-                'kasa'=>1,
-                'aciklama'=>1,
+            ['$match' => $q],
+            ['$lookup' => ['from' => 'uye', 'localField' => 'uye_id', 'foreignField' => '_id', 'as' => 'uye']],
+            ['$unwind' => ['path' => '$uye']],
+            ['$project' => [
+                '_id' => 1,
+                'tur' => 1,
+                'kasa' => 1,
+                'aciklama' => 1,
                 'tarih' => 1,
                 'tutar' => 1,
                 'tanim' => 1,
@@ -614,62 +614,63 @@ class db
                 'uye_ad' => '$uye.ad',
                 'uye_id' => 1,
                 'user_text' => 1
-            ] ]
+            ]]
         ]);
         return Cast::toTable($res);
     }
 
-    public static function ozet($post) {
+    public static function ozet($post)
+    {
         $mongo = self::mongo();
         $baslangic = Cast::toISODate($post->baslangic);
         $bitis = Cast::toISODate($post->bitis);
         $keiko = [
-            [ '$project' => [
-                '_id'=>1,
-                'keikolar'=>[ '$filter' => [
+            ['$project' => [
+                '_id' => 1,
+                'keikolar' => ['$filter' => [
                     'input' => '$keikolar',
                     'as' => 'tarih',
-                    'cond' => [ '$and' => [
-                        [ '$gte' => ['$$tarih', $baslangic ] ],
-                        [ '$lte' => ['$$tarih', $bitis ] ]
+                    'cond' => ['$and' => [
+                        ['$gte' => ['$$tarih', $baslangic]],
+                        ['$lte' => ['$$tarih', $bitis]]
                     ]]
-                ] ]
-            ] ],
-            [ '$unwind' => '$keikolar' ],
-            [ '$group' => [
+                ]]
+            ]],
+            ['$unwind' => '$keikolar'],
+            ['$group' => [
                 '_id' => '$keikolar',
-                't1'=> [ '$sum'=>1 ]
-            ] ],
-            [ '$group' => [
-                '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$_id' ] ],
-                'deger' => [ '$avg'=>'$t1' ]/*,
+                't1' => ['$sum' => 1]
+            ]],
+            ['$group' => [
+                '_id' => ['$dateToString' => ['format' => '%Y-%m', 'date' => '$_id']],
+                'deger' => ['$avg' => '$t1']/*,
                 'toplam' => [ '$sum' => '$t1' ],
                 'sayi' => [ '$sum' => 1 ]*/
-            ] ],
-            [ '$sort'=>[ '_id' => 1 ] ]
+            ]],
+            ['$sort' => ['_id' => 1]]
         ];
 
         $gelir = [
-            [ '$match' => [
+            ['$match' => [
                 'tur' => 'GELIR',
-                'tarih' => [ '$gte'=> $baslangic, '$lte'=>$bitis ]
-            ] ],
-            [ '$group' => [
-                '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$tarih' ] ],
-                'deger' => [ '$sum' => '$tutar' ]
-            ] ]
+                'tarih' => ['$gte' => $baslangic, '$lte' => $bitis]
+            ]],
+            ['$group' => [
+                '_id' => ['$dateToString' => ['format' => '%Y-%m', 'date' => '$tarih']],
+                'deger' => ['$sum' => '$tutar']
+            ]]
         ];
 
         $gider = [
-            [ '$match' => [
+            ['$match' => [
                 'tur' => 'GIDER',
-                'tarih' => [ '$gte'=> $baslangic, '$lte'=>$bitis ]
-            ] ],
-            [ '$group' => [
-                '_id' => [ '$dateToString' => ['format'=> '%Y-%m', 'date'=>'$tarih' ] ],
-                'deger' => [ '$sum' => '$tutar' ]
-            ] ]
-        ];        
+                'tarih' => ['$gte' => $baslangic, '$lte' => $bitis]
+            ]],
+            ['$group' => [
+                '_id' => ['$dateToString' => ['format' => '%Y-%m', 'date' => '$tarih']],
+                'deger' => ['$sum' => '$tutar']
+            ]]
+        ];
         //var_dump($keiko);
         //return Cast::toStdObject($mongo->selectCollection("uye")->aggregate($keiko));
         return (object)[
@@ -679,19 +680,20 @@ class db
         ];
     }
 
-    public static function validateEmail(string $_id) {
+    public static function validateEmail(string $_id)
+    {
         $mongo = self::mongo();
         $dt = (new DateTime("now"))->modify('-1 day');
         $mdt = Cast::toUTCDateTime($dt);
         $result = $mongo->selectCollection("email_activation")->findOne([
-            "_id"=>Cast::toObjectId($_id),
-            'create_at'=>['$gte'=>$mdt]
+            "_id" => Cast::toObjectId($_id),
+            'create_at' => ['$gte' => $mdt]
         ]);
         //var_dump($dt); var_dump($result); die();
-        if ( !is_null($result) ) {
+        if (!is_null($result)) {
             $uye_id = $result["uye_id"];
-            $res = $mongo->selectCollection("uye")->updateOne(['_id'=>$uye_id],['$set'=>["email_activation"=>true]]);
-            if ( !$res->isAcknowledged() ) {
+            $res = $mongo->selectCollection("uye")->updateOne(['_id' => $uye_id], ['$set' => ["email_activation" => true]]);
+            if (!$res->isAcknowledged()) {
                 throw new Exception("Aktivasyon gerceklestirilemedi");
             }
         } else {

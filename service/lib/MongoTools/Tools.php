@@ -19,8 +19,12 @@ class Cast {
 
             
         }
-        public static function toUTCDateTime(\DateTime $dt)  : \MongoDB\BSON\UTCDateTime {
-            return new  \MongoDB\BSON\UTCDateTime($dt);
+        public static function toUTCDateTime(?\DateTime $dt = null)  : \MongoDB\BSON\UTCDateTime {
+            if ( is_null($dt) ) {
+                return new \MongoDB\BSON\UTCDateTime();
+            } else {
+                return new \MongoDB\BSON\UTCDateTime($dt);
+            }            
         }
 
         public static function toDateTime(\MongoDB\BSON\UTCDateTime $mdt) : \DateTime {
