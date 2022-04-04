@@ -258,13 +258,13 @@ class db
                             'in' => ['$dateToString' => ['format' => '%Y-%m', 'date' => '$$ktar']]
                         ]]],
                         'as' => 'ka',
-                        'cond' => ['$ne' => ['$$ka', ['$dateToString', 'format' => '%Y-%m', 'date' => $ISONOW]]]
+                        'cond' => ['$ne' => ['$$ka', [ '$dateToString' => ['format' => '%Y-%m', 'date' => $ISONOW] ]  ]]
                     ]],
                     'aidatlar' => '$aidatlar._id'
                 ]
             ],
             [
-                '$addFields' => ['aidateksigi' => ['$setDifference' => ['$keikoaylar', '$aidatlar']]]
+                '$addFields' => ['aidateksigi' => ['$setDifference' => ['$keikoaylar', '$aidatlar']]  ]
             ],
             [
                 '$unset' => ['keikoaylar', 'keikolar', 'aidatlar', 'eski_uye_id']
