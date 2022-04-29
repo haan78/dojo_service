@@ -196,7 +196,7 @@ class db
         $query = [
             ['$match' => [
                 'active' => true,
-                'email_activation' => true
+                //'email_activation' => true
             ]],
             ['$lookup' => [
                 'from' => 'gelirgider',
