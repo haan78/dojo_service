@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DBSchema namespace="App1">
+    <Person>
+        <name type="string" />
+        <birtdate type="date" />
+        <gender type="string" test="gender1"></gender>
+        <contacts type="array" of="object">
+            <contact_type type="string"/>
+            <value type="string" />
+        </contacts>
+    </Person>
+    <Log>
+        <timestamp type="datetime" />
+        <action type="string" />
+        <user_id type="id" />
+        <params type="array" of="string" />
+    </Log>
+</DBSchema>
